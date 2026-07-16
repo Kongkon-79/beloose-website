@@ -1,6 +1,39 @@
-import { NextAuthOptions } from "next-auth";
-import { JWT } from "next-auth/jwt";
+import type { NextAuthOptions, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+
+interface LoginUser {
+  _id: string;
+  fullName: string;
+  businessName: string;
+  email: string;
+  role: string;
+  verfied: string;
+  status: string;
+  isSubscription: boolean;
+}
+
+interface LoginResponse {
+  statusCode: number;
+  success: boolean;
+  message: string;
+  data?: {
+    accessToken: string;
+    user: LoginUser;
+  };
+}
+
+interface AuthUser extends User {
+  id: string;
+  fullName: string;
+  businessName: string;
+  role: string;
+  verified: string;
+  status: string;
+  isSubscription: boolean;
+  accessToken: string;
+}
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -8,114 +41,108 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 7 * 24 * 60 * 60,
   },
+  pages: {
+    signIn: "/login",
+  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "text", placeholder: "email" },
-        password: {
-          label: "Password",
-          type: "password",
-          placeholder: "password",
-        },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        const email = credentials?.email?.trim();
+        const password = credentials?.password;
+
+        if (!email || !password) {
           throw new Error("Please enter your email and password");
         }
+
+        let response: Response;
+
         try {
-          const res = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                email: credentials.email,
-                password: credentials.password,
-              }),
-            }
-          );
-          const response = await res.json();
-
-          console.log("Login response:", response);
-
-          if (!res.ok || !response?.success) {
-            throw new Error(response?.message || "Login failed");
-          }
-
-          const payload = response?.data ?? response;
-          const user = payload?.user;
-          const accessToken = payload?.accessToken ?? payload?.token;
-
-          if (!user || !accessToken) {
-            throw new Error(response?.message || "Invalid login response");
-          }
-
-          return {
-            id: user?._id ?? user?.id,
-            firstName: user?.firstName,
-            lastName: user?.lastName,
-            username: user?.username,
-            email: user?.email,
-            phoneNumber: user?.phoneNumber,
-            status: user?.status,
-            tag: user?.tag,
-            gender: user?.gender,
-            role: user?.role,
-            profileImage: user?.profileImage,
-            token: accessToken,
-            accessToken,
-          };
-        } catch (error) {
-          console.error("Authentication error:", error);
-          const errorMessage =
-            error instanceof Error
-              ? error.message
-              : "Authentication failed. Please try again.";
-          throw new Error(errorMessage);
+          response = await fetch(`${apiUrl}/auth/login`, {
+            method: "POST",
+            headers: {
+              accept: "*/*",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+            cache: "no-store",
+          });
+        } catch {
+          throw new Error("Unable to connect to the login service");
         }
+
+        let result: LoginResponse;
+
+        try {
+          result = (await response.json()) as LoginResponse;
+        } catch {
+          throw new Error("The login service returned an invalid response");
+        }
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "Invalid email or password");
+        }
+
+        const accessToken = result.data?.accessToken;
+        const user = result.data?.user;
+
+        if (!accessToken || !user?._id) {
+          throw new Error("The login response is missing user information");
+        }
+
+        return {
+          id: user._id,
+          name: user.fullName,
+          email: user.email,
+          fullName: user.fullName,
+          businessName: user.businessName,
+          role: user.role,
+          verified: user.verfied,
+          status: user.status,
+          isSubscription: user.isSubscription,
+          accessToken,
+        } satisfies AuthUser;
       },
     }),
   ],
-
   callbacks: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async jwt({ token, user }: { token: JWT; user?: any }) {
+    async jwt({ token, user }) {
       if (user) {
-        token.id = user.id ?? user._id;
-        token.firstName = user.firstName;
-        token.lastName = user.lastName;
-        token.username = user.username;
-        token.email = user.email;
-        token.status = user.status;
-        token.tag = user.tag;
-        token.phoneNumber = user.phoneNumber;
-        token.role = user.role;
-        token.profileImage = user.profileImage;
-        token.token = user.token ?? user.accessToken;
-        token.accessToken = user.token ?? user.accessToken;
+        const authUser = user as AuthUser;
+
+        token.id = authUser.id;
+        token.name = authUser.fullName;
+        token.email = authUser.email;
+        token.fullName = authUser.fullName;
+        token.businessName = authUser.businessName;
+        token.role = authUser.role;
+        token.verified = authUser.verified;
+        token.status = authUser.status;
+        token.isSubscription = authUser.isSubscription;
+        token.accessToken = authUser.accessToken;
       }
+
       return token;
     },
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async session({ session, token }: { session: any; token: JWT }) {
+    async session({ session, token }) {
       session.user = {
-        id: token.id,
-        firstName: token.firstName,
-        lastName: token.lastName,
-        username: token.username,
-        tag: token.tag,
-        status: token.status,
-        email: token.email,
-        phoneNumber: token.phoneNumber,
-        role: token.role,
-        profileImage: token.profileImage,
-        token: token.token ?? token.accessToken,
-        accessToken: token.accessToken ?? token.token,
+        ...session.user,
+        id: token.id as string,
+        name: token.fullName as string,
+        fullName: token.fullName as string,
+        businessName: token.businessName as string,
+        email: token.email ?? "",
+        role: token.role as string,
+        verified: token.verified as string,
+        status: token.status as string,
+        isSubscription: Boolean(token.isSubscription),
       };
+      session.accessToken = token.accessToken as string;
+
       return session;
     },
   },
