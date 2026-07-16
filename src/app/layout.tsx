@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import AppProvider from "@/providers/app-provider";
 import { Toaster } from "sonner";
@@ -19,6 +19,13 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const poppins = Poppins({
+  variable: "--font-poppins",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Beloose",
   description: "The digital operating platform for premium cigar retailers. Digitizing the humidor experience, one shop at a time.",
@@ -31,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${playfair.variable} ${poppins.variable} font-sans antialiased`}>
         <AppProvider>{children}</AppProvider>
         <Toaster />
       </body>
