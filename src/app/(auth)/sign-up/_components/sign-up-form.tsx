@@ -103,7 +103,7 @@ const SignupForm = () => {
     },
     onSuccess: (data) => {
       toast.success(data?.message || "User registered successfully");
-      router.push("/login");
+      router.push("/subscription");
     },
     onError: (error) => {
       toast.error(
@@ -307,12 +307,12 @@ const SignupForm = () => {
               {isPending ? "Signing up..." : "Sign up"}
             </Button>
 
-            <p className="pt-1 text-center text-xs font-normal text-white">
+            {/* <p className="pt-1 text-center text-xs font-normal text-white">
               Already have an account?{" "}
               <Link className="text-[#D5AB48] hover:underline" href="/login">
                 Log In
               </Link>
-            </p>
+            </p> */}
           </form>
         </Form>
       </div>
