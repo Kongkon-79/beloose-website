@@ -5,9 +5,11 @@ import Link from "next/link";
 import MobileNavbar from "./MobileNavbar";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const { status } = useSession();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -61,11 +63,11 @@ const Navbar = () => {
 
         <div className="hidden flex-1 items-center justify-end lg:flex">
           <Link
-            href="#"
+            href={status === "authenticated" ? "/retailer-dashboard" : "/login"}
             className="inline-flex h-12 min-w-[150px] items-center justify-center gap-2.5 rounded-[4px] bg-primary px-6 text-base lg:text-lg font-medium leading-normal text-[#1E1409] shadow-[0_14px_30px_rgba(0,0,0,0.18)] transition hover:bg-[#e5ba4f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0cf76]"
           >
             <Store className="h-6 w-6" />
-            Retailer
+            {status === "authenticated" ? "Dashboard" : "Retailer Login"}
           </Link>
         </div>
 

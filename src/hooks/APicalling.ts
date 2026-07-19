@@ -36,23 +36,23 @@ export function useChnagePassword(
     });
 }
 
-export function useProfileQuery(token: string | undefined, id: string | undefined) {
+export function useProfileQuery(token: string | undefined) {
     return useQuery<UserResponse>({
         queryKey: ["me"],
         queryFn: () => {
             if (!token) throw new Error("Token is missing")
-            return getProfile(token, id)
+            return getProfile(token)
         },
         enabled: !!token,
     })
 }
 
 export function useProfileUpdate(
-    token: string, id: string, onSuccessCallback?: () => void) {
+    token: string, onSuccessCallback?: () => void) {
      const queryClient = useQueryClient();
         return useMutation({
         mutationFn: (payload:{ firstName: string; lastName: string; email: string; phoneNumber: string; address: string;}) =>
-            updateProfile(token, payload, id),
+            updateProfile(token, payload),
         onSuccess: (data) => {
             toast.success(data?.message || "Password updated successfully");
             if (onSuccessCallback) onSuccessCallback();

@@ -70,13 +70,18 @@ const SignupForm = () => {
     mutationFn: async (values: FormValues) => {
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api/v1";
-      const res = await fetch(`${apiUrl}/auth/register/user`, {
+      const res = await fetch(`${apiUrl}/auth/register`, {
         method: "POST",
         headers: {
           accept: "*/*",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          fullName: `${values.firstName} ${values.lastName}`.trim(),
+          businessName: values.username,
+          email: values.email,
+          password: values.password,
+        }),
       });
       const data = await res.json();
 
@@ -173,11 +178,11 @@ const SignupForm = () => {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className={labelClassName}>User Name</FormLabel>
+                    <FormLabel className={labelClassName}>Business Name</FormLabel>
                     <FormControl>
                       <Input
                         className={inputClassName}
-                        placeholder="Type your username"
+                        placeholder="Type your business name"
                         {...field}
                       />
                     </FormControl>

@@ -4,6 +4,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
+  pages: {
+    signIn: "/login",
+  },
   session: {
     strategy: "jwt",
     maxAge: 7 * 24 * 60 * 60,
@@ -39,8 +42,6 @@ export const authOptions: NextAuthOptions = {
           );
           const response = await res.json();
 
-          console.log("Login response:", response);
-
           if (!res.ok || !response?.success) {
             throw new Error(response?.message || "Login failed");
           }
@@ -55,6 +56,7 @@ export const authOptions: NextAuthOptions = {
 
           return {
             id: user?._id ?? user?.id,
+            fullName: user?.fullName,
             firstName: user?.firstName,
             lastName: user?.lastName,
             username: user?.username,
@@ -82,9 +84,10 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async jwt({ token, user }: { token: JWT; user?: any }) {
+    async jwt({ token, user, trigger, session }: { token: JWT; user?: any; trigger?: string; session?: any }) {
       if (user) {
         token.id = user.id ?? user._id;
+        token.fullName = user.fullName;
         token.firstName = user.firstName;
         token.lastName = user.lastName;
         token.username = user.username;
@@ -97,6 +100,10 @@ export const authOptions: NextAuthOptions = {
         token.token = user.token ?? user.accessToken;
         token.accessToken = user.token ?? user.accessToken;
       }
+      if (trigger === "update" && session) {
+        token.fullName = session.fullName ?? token.fullName;
+        token.email = session.email ?? token.email;
+      }
       return token;
     },
 
@@ -104,6 +111,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }: { session: any; token: JWT }) {
       session.user = {
         id: token.id,
+        fullName: token.fullName,
         firstName: token.firstName,
         lastName: token.lastName,
         username: token.username,
