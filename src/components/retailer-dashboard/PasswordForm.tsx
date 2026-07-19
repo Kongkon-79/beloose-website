@@ -1,11 +1,40 @@
 "use client";
 
-import { Check, Eye, X } from "lucide-react";
-import { useState } from "react";
+import { changePassword } from "@/lib/profileInfo";
+import { useMutation } from "@tanstack/react-query";
+import { Eye, EyeOff, KeyRound } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { FormEvent, useState } from "react";
+import { toast } from "sonner";
+import DashboardState from "./DashboardState";
+import ProfileSkeleton from "./ProfileSkeleton";
 
 export default function PasswordForm() {
-  const [show,setShow] = useState(false);
-  const inputClass="h-11 w-full rounded border border-[#d4c091] bg-transparent px-3 pr-11 text-xs outline-none focus:border-[#d2a13d]";
-  return <div className="min-h-[calc(100vh-72px)] bg-[#3b2918] p-3 sm:p-5"><section className="relative overflow-hidden rounded-lg bg-[#261407]"><div className="h-32 bg-[linear-gradient(to_bottom,rgba(0,0,0,.25),rgba(45,26,8,.85)),url('/assets/images/footer_bg.png')] bg-cover bg-center"/><div className="relative -mt-12 flex items-end gap-3 px-4 pb-4"><span className="grid h-16 w-16 place-items-center rounded-lg border border-[#d2a13d] bg-[#573621] font-playfair text-lg">CL</span><div><h2 className="font-playfair text-xl font-semibold">The Cigar Lounge</h2><p className="text-[10px] text-[#b89a67]">Premium Retailer · Humidor411 Partner</p></div></div></section><form onSubmit={event=>event.preventDefault()} className="mt-4 rounded-lg border border-[#d4c091] bg-[#59401f] p-4"><div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><PasswordField label="Current Password" show={show} toggle={()=>setShow(x=>!x)} className={inputClass}/><PasswordField label="New Password" show={show} toggle={()=>setShow(x=>!x)} className={inputClass}/><PasswordField label="Confirm New Password" show={show} toggle={()=>setShow(x=>!x)} className={`${inputClass} border-red-500 sm:col-span-2`} wide/></div><ul className="mt-4 space-y-2 text-[10px] text-[#bda87c]">{[[true,"Minimum 8–12 characters (recommend 12+ for stronger security)."],[true,"At least one uppercase letter must."],[true,"At least one lowercase letter must."],[true,"At least one number must (0–9)."],[false,"At least special character (! @ # $ % ^ & * etc.)."],[false,"No spaces allowed."]].map(([valid,text])=><li className="flex items-center gap-2" key={text as string}>{valid?<Check size={13} className="text-[#8bb89b]"/>:<X size={13} className="text-[#d2a13d]"/>}{text as string}</li>)}</ul><div className="mt-6 flex justify-end gap-2"><button type="button" className="h-10 min-w-28 rounded border border-[#d2a13d] text-xs">Cancel</button><button className="h-10 min-w-28 rounded bg-[#d2a13d] text-xs text-[#291806]">Save Changes</button></div></form></div>;
+  const { data: session, status } = useSession();
+  const token = (session?.user as { accessToken?: string } | undefined)?.accessToken;
+  const [values, setValues] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
+  const mutation = useMutation({
+    mutationFn: () => changePassword(token!, values),
+    onSuccess: (data) => {
+      toast.success(data?.message || "Password updated successfully");
+      setValues({ oldPassword: "", newPassword: "", confirmPassword: "" });
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Password update failed"),
+  });
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (values.newPassword.length < 6) return toast.error("New password must be at least 6 characters");
+    if (values.newPassword !== values.confirmPassword) return toast.error("New passwords do not match");
+    mutation.mutate();
+  };
+
+  if (status === "loading") return <ProfileSkeleton/>;
+  if (!token) return <DashboardState type="error" message="Your session token is missing. Please log in again."/>;
+
+  return <div className="min-h-[calc(100vh-72px)] bg-[#3b2918] p-3 sm:p-5"><section className="rounded-lg border border-[#6d512f] bg-[#2d1a08] p-5"><div className="mb-6 flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-full bg-[#513719] text-[#d7a73c]"><KeyRound size={20}/></span><div><h2 className="font-playfair text-xl font-semibold">Change password</h2><p className="mt-1 text-xs text-[#b89a67]">Use a strong password you do not use elsewhere.</p></div></div><form onSubmit={submit} className="max-w-2xl space-y-4"><PasswordField label="Current Password" value={values.oldPassword} onChange={oldPassword => setValues(current => ({ ...current, oldPassword }))}/><PasswordField label="New Password" value={values.newPassword} onChange={newPassword => setValues(current => ({ ...current, newPassword }))}/><PasswordField label="Confirm New Password" value={values.confirmPassword} onChange={confirmPassword => setValues(current => ({ ...current, confirmPassword }))}/>{mutation.isError && <p role="alert" className="rounded border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-300">{mutation.error instanceof Error ? mutation.error.message : "Password update failed"}</p>}<div className="flex justify-end gap-2 pt-2"><button type="button" onClick={() => setValues({ oldPassword: "", newPassword: "", confirmPassword: "" })} className="h-10 min-w-28 rounded border border-[#d2a13d] text-xs">Clear</button><button disabled={mutation.isPending} className="h-10 min-w-32 rounded bg-[#d2a13d] text-xs font-semibold text-[#291806] disabled:opacity-60">{mutation.isPending ? "Saving..." : "Save Changes"}</button></div></form></section></div>;
 }
-function PasswordField({label,show,toggle,className,wide}:{label:string;show:boolean;toggle:()=>void;className:string;wide?:boolean}){return <label className={`relative flex flex-col gap-1.5 text-[11px] ${wide?"sm:col-span-2":""}`}><span>{label}</span><input type={show?"text":"password"} defaultValue="password123" className={className}/><button type="button" onClick={toggle} className="absolute bottom-3 right-3"><Eye size={16}/></button></label>}
+
+function PasswordField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  const [show, setShow] = useState(false);
+  return <label className="relative flex flex-col gap-1.5 text-[11px]"><span>{label}</span><input required minLength={6} type={show ? "text" : "password"} value={value} onChange={event => onChange(event.target.value)} className="h-11 w-full rounded border border-[#d4c091] bg-transparent px-3 pr-11 text-xs outline-none focus:border-[#d2a13d]"/><button type="button" onClick={() => setShow(current => !current)} aria-label={show ? "Hide password" : "Show password"} className="absolute bottom-3 right-3 text-[#b89a67]">{show ? <EyeOff size={16}/> : <Eye size={16}/>}</button></label>;
+}

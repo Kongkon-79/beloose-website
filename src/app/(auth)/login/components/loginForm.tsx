@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -34,6 +34,7 @@ const formSchema = z.object({
 
 const LoginForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -55,13 +56,28 @@ const LoginForm = () => {
         password: values.password,
         redirect: false,
       });
-      console.log(res);
       if (res?.error) {
         throw new Error(res.error);
       }
 
       toast.success("Login successful!");
-      router.push("/");
+      const callbackUrl = searchParams.get("callbackUrl");
+      let destination = "/retailer-dashboard";
+      if (callbackUrl) {
+        try {
+          const callback = new URL(callbackUrl, window.location.origin);
+          if (
+            callback.origin === window.location.origin &&
+            callback.pathname.startsWith("/retailer-dashboard")
+          ) {
+            destination = `${callback.pathname}${callback.search}${callback.hash}`;
+          }
+        } catch {
+          // Ignore invalid callback URLs and use the dashboard default.
+        }
+      }
+      router.replace(destination);
+      router.refresh();
     } catch (error) {
       console.error("Login failed:", error);
       toast.error((error as Error).message);
