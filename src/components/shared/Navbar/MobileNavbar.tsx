@@ -6,9 +6,11 @@ import { Menu, Store } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 
 const MobileNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { status } = useSession();
 
   const closeSheet = () => setIsOpen(false);
 
@@ -55,12 +57,12 @@ const MobileNavbar = () => {
 
           <div className="mt-8 space-y-3 border-t border-[#6d4519] pt-5">
             <Link
-              href="#"
+              href={status === "authenticated" ? "/retailer-dashboard" : "/login"}
               onClick={closeSheet}
               className="flex h-12 items-center justify-center gap-3 rounded-[5px] bg-[#d7a73c] px-4 text-base font-semibold text-[#150d05] transition hover:bg-[#e5ba4f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6a629]"
             >
               <Store className="h-5 w-5" />
-              Retailer
+              {status === "authenticated" ? "Dashboard" : "Retailer Login"}
             </Link>
           </div>
         </div>

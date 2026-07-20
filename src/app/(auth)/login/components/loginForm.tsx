@@ -15,24 +15,26 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { getSession, signIn } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z
     .string()
     .min(6, { message: "Password must be at least 6 characters long." }),
-  rememberMe: z.boolean(),
+    rememberMe: z.boolean(),
 });
 
 const LoginForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -45,146 +47,149 @@ const LoginForm = () => {
     },
   });
 
-  // console.log(isLoading)
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true);
 
       const res = await signIn("credentials", {
-        email: values.email.trim().toLowerCase(),
+        email: values.email,
         password: values.password,
-        rememberMe: values.rememberMe,
         redirect: false,
       });
-
-      if (!res || !res.ok || res.error) {
-        throw new Error(res?.error || "Unable to sign in. Please try again.");
+      if (res?.error) {
+        throw new Error(res.error);
       }
 
-      const session = await getSession();
       toast.success("Login successful!");
-      router.replace(session?.user?.isSubscription ? "/onboarding" : "/subscription");
+      const callbackUrl = searchParams.get("callbackUrl");
+      let destination = "/retailer-dashboard";
+      if (callbackUrl) {
+        try {
+          const callback = new URL(callbackUrl, window.location.origin);
+          if (
+            callback.origin === window.location.origin &&
+            callback.pathname.startsWith("/retailer-dashboard")
+          ) {
+            destination = `${callback.pathname}${callback.search}${callback.hash}`;
+          }
+        } catch {
+          // Ignore invalid callback URLs and use the dashboard default.
+        }
+      }
+      router.replace(destination);
       router.refresh();
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Unable to sign in. Please try again.",
-      );
+      console.error("Login failed:", error);
+      toast.error((error as Error).message);
     } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <div className="flex w-full items-center justify-center px-4 py-6">
-      <div className="w-full max-w-[590px] rounded-[10px] border border-[#CBA24A] bg-[rgba(19,15,9,0.78)] px-5 py-4 shadow-[0_4px_18px_rgba(0,0,0,0.45)] backdrop-blur-[5px] sm:px-6 sm:py-5">
-        <div className="mb-2 flex items-center justify-center">
+    <div className="w-full flex items-center justify-center px-4">
+      <div className="w-full md:w-[547px] p-3 md:p-7 lg:p-8 rounded-[16px] bg-white shadow-[0px_5px_10px_0px_#00000029]">
+        <div className="flex items-center justify-center mb-4">
           <Link href="/">
             <Image
               src="/assets/images/logo.png"
               alt="Logo"
-              width={76}
-              height={76}
-              className="h-[76px] w-[76px] object-contain"
-              priority
+              width={100}
+              height={100}
+              className="w-[90px] h-[90px]"
             />
           </Link>
         </div>
 
-        <h3 className="text-center font-[family-name:var(--font-playfair)] text-[30px] font-semibold leading-tight text-[#D5AB48]">
-          Welcome Back
+        <h3 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-primary text-center leading-[120%]">
+          Log in to your account
         </h3>
-        <p className="mt-1 text-center text-xs font-normal text-white/90">
-          Sign in to your humidor account
-        </p>
-
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-3 pt-5"
+            className="space-y-4 pt-5 md:pt-6"
           >
+            {/* Email Field */}
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
-                <FormItem className="space-y-1.5">
-                  <FormLabel className="text-xs font-normal text-white">
-                    Email Address
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1 text-base font-semibold leading-[120%] text-[#4365D0] pb-2">
+                    Email Address/Username
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      className="h-10 w-full rounded-[6px] border-0 bg-[#5A461D]/80 px-3 text-sm text-white shadow-none placeholder:text-[#D6C9A7] focus-visible:ring-1 focus-visible:ring-[#CBA24A]"
-                      placeholder="Enter Your Email Address..."
+                      className="w-full h-[48px] text-base font-medium leading-[120%] text-primary rounded-[8px] p-4 border border-[#F5F3FA] placeholder:text-[#667481] shadow-[0px_0px_10px_0px_#00000026]"
+                      placeholder="Type your email or username"
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage className="text-xs text-red-400" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />
 
+            {/* Password Field */}
             <FormField
               control={form.control}
               name="password"
               render={({ field }) => (
-                <FormItem className="space-y-1.5">
-                  <FormLabel className="text-xs font-normal text-white">
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1 text-base font-semibold leading-[120%] text-[#4365D0] pb-2">
                     Password
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
-                        className="h-10 w-full rounded-[6px] border-0 bg-[#3B2D16]/80 px-3 pr-10 text-sm text-white shadow-none placeholder:text-[#B7A887] focus-visible:ring-1 focus-visible:ring-[#CBA24A]"
-                        placeholder="Enter Password..."
+                        className="w-full h-[48px] text-base font-medium leading-[120%] text-primary rounded-[8px] p-4 border border-[#F5F3FA] placeholder:text-[#667481] shadow-[0px_0px_10px_0px_#00000026]"
+                        placeholder="********"
                         {...field}
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B7A887] transition-colors hover:text-[#CBA24A]"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                         onClick={() => setShowPassword((prev) => !prev)}
                         tabIndex={-1}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? (
-                          <EyeOff size={16} />
+                          <EyeOff size={20} className="text-[#4365D0]"/>
                         ) : (
-                          <Eye size={16} />
+                          <Eye size={20} className="text-[#4365D0]"/>
                         )}
                       </button>
                     </div>
                   </FormControl>
-                  <FormMessage className="text-xs text-red-400" />
+                  <FormMessage className="text-red-500" />
                 </FormItem>
               )}
             />
-
-            <FormField
+          <FormField
               control={form.control}
               name="rememberMe"
               render={({ field }) => (
-                <div className="flex w-full items-center justify-between pt-0.5">
-                  <FormItem className="flex items-center space-y-0 gap-2">
-                    <FormControl>
+                <div className="w-full flex items-center justify-between">
+                  <FormItem className="flex items-center gap-[10px]">
+                    <FormControl className="mt-1">
                       <Checkbox
                         id="rememberMe"
                         checked={field.value}
                         onCheckedChange={field.onChange}
-                        className="h-3.5 w-3.5 rounded-[2px] border-[#CBA24A] data-[state=checked]:bg-[#CBA24A] data-[state=checked]:text-[#241A0C]"
+                        className="data-[state=checked]:bg-primary data-[state=checked]:text-white border-primary"
                       />
                     </FormControl>
-                    <label
-                      className="cursor-pointer text-xs font-normal text-white"
+                    <Label
+                      className="text-sm md:text-base font-medium text-[#4365D0] leading-[120%]"
                       htmlFor="rememberMe"
                     >
                       Remember Me
-                    </label>
+                    </Label>
+                    <FormMessage className="text-red-500" />
                   </FormItem>
                   <Link
-                    className="text-xs font-normal text-[#D5AB48] hover:underline"
+                    className="text-sm md:text-base font-semibold text-[#667481] cursor-pointer leading-[120%] hover:underline"
                     href="/forgot-password"
                   >
                     Forgot Password?
@@ -194,18 +199,13 @@ const LoginForm = () => {
             />
             <Button
               disabled={isLoading}
-              className="h-10 w-full rounded-[6px] bg-[#D5AB48] text-sm font-semibold text-[#241A0C] shadow-none hover:bg-[#E2BA5A]"
+               className="text-base font-semibold text-white leading-[120%] rounded-[8px] w-full h-[48px] bg-primary"
               type="submit"
             >
               {isLoading ? "Signing In..." : "Sign In"}
             </Button>
 
-            <p className="pt-2 text-center text-xs font-normal text-white">
-              Don&apos;t have an account?{" "}
-              <Link className="text-[#D5AB48] hover:underline" href="/sign-up">
-                Register Here
-              </Link>
-            </p>
+             <p className="text-sm md:text-base text-[#1A1A2E] font-normal text-center pt-1 leading-[120%] ">Don’t Have an account? <Link className="text-[#23547B] underline" href="/sign-up">Sign up</Link></p>
           </form>
         </Form>
       </div>

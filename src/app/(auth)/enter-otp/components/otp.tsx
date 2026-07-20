@@ -15,38 +15,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
-interface AuthActionResponse {
-  statusCode: number;
-  success: boolean;
-  message: string;
-  data?: {
-    message: string;
-  };
-}
-
-const apiUrl =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
-
 export default function OtpForm() {
   const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
-  const [secondsLeft, setSecondsLeft] = useState(59);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const searchParams = useSearchParams();
-  const email = searchParams.get("email")?.trim().toLowerCase() ?? "";
+  const email = searchParams.get("email");
+  const decodedEmail = decodeURIComponent(email || "");
   const router = useRouter();
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
-
-  useEffect(() => {
-    if (secondsLeft <= 0) return;
-    const timer = window.setInterval(
-      () => setSecondsLeft((seconds) => Math.max(0, seconds - 1)),
-      1000,
-    );
-    return () => window.clearInterval(timer);
-  }, [secondsLeft]);
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -72,48 +51,21 @@ export default function OtpForm() {
 
   const { mutate, isPending } = useMutation({
     mutationKey: ["verify-otp"],
-    mutationFn: async (values: { email: string; otp: string }) => {
-      let response: Response;
-
-      try {
-        response = await fetch(`${apiUrl}/auth/verify`, {
-          method: "POST",
-          headers: {
-            accept: "*/*",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(values),
-        });
-      } catch {
-        throw new Error("Unable to connect to the verification service");
+    mutationFn: (values: { otp: string; email: string }) =>
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(values),
+      }).then((res) => res.json()),
+    onSuccess: (data) => {
+      if (!data?.success) {
+        toast.error(data?.message || "Something went wrong");
+        return;
       }
-
-      let result: AuthActionResponse;
-
-      try {
-        result = (await response.json()) as AuthActionResponse;
-      } catch {
-        throw new Error("The verification service returned an invalid response");
-      }
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "OTP verification failed");
-      }
-
-      return result;
-    },
-    onSuccess: (result, values) => {
-      toast.success(result.message || "Email verified successfully");
-      router.push(
-        `/change-password?email=${encodeURIComponent(values.email)}&otp=${encodeURIComponent(values.otp)}`,
-      );
-    },
-    onError: (error) => {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "OTP verification failed. Please try again.",
-      );
+      toast.success(data?.message || "OTP verified successfully!");
+      router.push(`/change-password?email=${encodeURIComponent(decodedEmail)}&otp=${encodeURIComponent(otp.join(""))}`);
     },
   });
 
@@ -129,84 +81,65 @@ export default function OtpForm() {
 
   const handleVerify = () => {
     const otpValue = otp.join("");
-    if (!email) {
-      toast.error("Email address is missing. Please request a new OTP.");
-      return;
-    }
     if (otpValue.length !== 6) {
       toast.error("Please enter all 6 digits of the OTP.");
       return;
     }
-    mutate({ email, otp: otpValue });
+    mutate({ otp: otpValue, email: decodedEmail });
   };
 
   const resendOtp = useMutation({
     mutationKey: ["forgot-password"],
-    mutationFn: async (email: string) => {
-      let response: Response;
+    mutationFn: (email: string) =>
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      }).then((res) => res.json()),
 
-      try {
-        response = await fetch(`${apiUrl}/auth/forgot-password`, {
-          method: "POST",
-          headers: {
-            accept: "*/*",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email }),
-        });
-      } catch {
-        throw new Error("Unable to resend the OTP");
+    onSuccess: (data, email) => {
+      if (!data?.success) {
+        toast.error(data?.message || "Something went wrong");
+        return;
       }
 
-      const result = (await response.json()) as AuthActionResponse;
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Unable to resend the OTP");
-      }
-
-      return result;
-    },
-
-    onSuccess: (result) => {
-      toast.success(result.message || "Email sent successfully");
-      setSecondsLeft(59);
+      toast.success(data?.message || "Email sent successfully!");
+      router.push(`/enter-otp?email=${encodeURIComponent(email)}`);
     },
 
     onError: (error) => {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Unable to resend the OTP. Please try again.",
-      );
+      toast.error("Something went wrong. Please try again.");
+      console.error("Forgot password error:", error);
     },
   });
 
 
 
   return (
-    <div className="flex w-full items-center justify-center px-4 py-6">
-      <div className="flex w-full max-w-[590px] flex-col rounded-[10px] border border-[#CBA24A] bg-[rgba(19,15,9,0.78)] px-5 py-4 shadow-[0_4px_18px_rgba(0,0,0,0.45)] backdrop-blur-[5px] sm:px-6 sm:py-5">
-        <div className="mb-2 flex items-center justify-center">
+    <div className="w-full flex items-center justify-center px-4">
+     
+
+      <div className="w-full md:w-[547px] p-5 md:p-8 lg:p-10 rounded-[16px] bg-white shadow-[0px_5px_10px_0px_#00000029] flex flex-col items-center space-y-8">
+
+          <div className="flex items-center justify-center mb-0">
           <Link href="/">
             <Image
               src="/assets/images/logo.png"
               alt="Logo"
-              width={76}
-              height={76}
-              className="h-[76px] w-[76px] object-contain"
-              priority
+              width={100}
+              height={100}
+              className="w-[90px] h-[90px]"
             />
           </Link>
         </div>
 
-        <h3 className="text-center font-[family-name:var(--font-playfair)] text-[30px] font-semibold leading-tight text-[#D5AB48]">
+        <h3 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-primary text-center leading-[120%]">
           Verify Email
         </h3>
-        <p className="mt-1 text-center text-xs text-white/90">
-          Enter OTP to verify your email address
-        </p>
-
-        <div className="mt-5 grid grid-cols-6 gap-2 sm:gap-4">
+        {/* OTP Input Fields */}
+        <div className="flex justify-center gap-2 md:gap-4 lg:gap-6">
           {otp.map((digit, index) => (
             <Input
               key={index}
@@ -220,40 +153,36 @@ export default function OtpForm() {
               ref={(el) => {
                 inputRefs.current[index] = el;
               }}
-              className={`h-12 w-full rounded-[5px] border bg-[#21170D]/70 p-0 text-center text-xl font-semibold shadow-none transition-colors focus-visible:ring-1 focus-visible:ring-[#CBA24A] sm:h-[68px] sm:text-2xl ${
-                digit
-                  ? "border-[#CBA24A] text-[#D5AB48]"
-                  : "border-white/70 text-white"
-              }`}
+              className={`w-11 h-12 md:w-14 md:h-16 text-center text-xl font-semibold rounded-lg border ${digit
+                  ? "border-primary text-primary"
+                  : "border-[#F5F3FA] placeholder:text-[#667481] shadow-[0px_0px_10px_0px_#00000026]"
+                } focus:ring-2 focus:ring-primary] focus:border-primary transition-all`}
               aria-label={`OTP digit ${index + 1}`}
             />
           ))}
         </div>
 
-        <div className="mt-3 flex items-center justify-between text-xs text-white/90">
-          <span>
-            00:{secondsLeft.toString().padStart(2, "0")}
-          </span>
-          <p>
-            Didn&apos;t get a code?{" "}
-            <button
-              type="button"
-              onClick={() => resendOtp.mutate(email)}
-              className="text-[#D5AB48] hover:underline disabled:opacity-60"
-              disabled={resendOtp.isPending}
-            >
-              {resendOtp.isPending ? "Resending..." : "Resend"}
-            </button>
-          </p>
-        </div>
+        {/* Resend Option */}
+        <p className="text-sm md:text-base text-[#4365D0] text-center">
+          Didn’t get a code?{" "}
+          <button
+            onClick={() => resendOtp.mutate(decodedEmail)}
+            className="text-primary  font-medium hover:underline"
+          >
+            {resendOtp.isPending ? "Resending..." : "Resend"}
+          </button>
+        </p>
 
+        {/* Verify Button */}
         <Button
           disabled={isPending}
           onClick={handleVerify}
-          className="mt-4 h-10 w-full rounded-[6px] bg-[#D5AB48] text-sm font-semibold text-[#241A0C] shadow-none hover:bg-[#E2BA5A]"
+           className="text-base font-semibold text-white leading-[120%] rounded-[8px] w-full h-[48px] bg-primary"
         >
-          {isPending ? "Verifying..." : "Verify"}
+          {isPending ? "Verifying..." : "Verify Now"}
         </Button>
+
+        
       </div>
     </div>
   );

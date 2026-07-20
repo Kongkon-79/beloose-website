@@ -25,6 +25,7 @@ const config: Config = {
   		},
 		fontFamily: {
         sans: ["var(--font-inter)", "sans-serif"],
+        poppins: ["var(--font-poppins)", "sans-serif"],
         playfair: ["var(--font-playfair)", "serif"],
       },
   		colors: {

@@ -1,6 +1,5 @@
 const nextConfig = {
   images: {
-    domains: ["example.com", "res.cloudinary.com"],
     remotePatterns: [
       {
         protocol: "https",
