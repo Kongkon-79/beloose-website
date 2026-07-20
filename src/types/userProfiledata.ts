@@ -13,6 +13,6 @@ export interface UserResponse {
     createdAt: string
     updatedAt: string
     __v: number
-    profileImage: string
+    profilePicture: string
   }
 }

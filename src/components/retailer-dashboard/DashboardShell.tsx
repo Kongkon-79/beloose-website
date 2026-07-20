@@ -20,7 +20,7 @@ export default function DashboardShell({ title, subtitle, children }: Props) {
   const { data: session } = useSession();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const user = session?.user as
-    | { fullName?: string; firstName?: string; lastName?: string; email?: string }
+    | { fullName?: string; firstName?: string; lastName?: string; email?: string; profilePicture?: string }
     | undefined;
   const name =
     user?.fullName ||
@@ -45,7 +45,7 @@ export default function DashboardShell({ title, subtitle, children }: Props) {
 
         <div className="mt-auto hidden w-full lg:block">
           <div className="flex items-center gap-2 px-0.5 py-3">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#c7963d] bg-gradient-to-br from-[#79402d] to-[#17100b] text-[9px] font-bold">{initials}</span>
+            <Avatar src={user?.profilePicture} initials={initials} className="h-9 w-9 text-[9px]" />
             <span className="flex min-w-0 flex-col"><strong className="text-[10px] text-[#ead8ae]">{name}</strong><small className="truncate text-[7px] text-[#80653c]">{email}</small></span>
           </div>
           <button type="button" onClick={() => setLogoutOpen(true)} className="flex h-9 w-full items-center justify-center gap-2 rounded border border-[#e63f4c] text-[11px] text-[#ff4554] transition hover:bg-[#e63f4c] hover:text-white"><LogOut size={17} /> Log out</button>
@@ -57,7 +57,7 @@ export default function DashboardShell({ title, subtitle, children }: Props) {
           <div><h1 className="text-lg font-bold leading-[120%]">{title}</h1><p className="mt-1 text-[11px] text-[#876d46]">{subtitle}</p></div>
           <div className="flex items-center gap-2">
             <Link href="/retailer-dashboard/settings" aria-label="Open settings" className="flex items-center gap-2 rounded px-1 py-1 no-underline transition hover:bg-[#513719] hover:no-underline">
-              <span className="grid h-8 w-8 place-items-center rounded-full border border-[#c7963d] bg-gradient-to-br from-[#79402d] to-[#17100b] text-[8px] font-bold">{initials}</span>
+              <Avatar src={user?.profilePicture} initials={initials} className="h-8 w-8 text-[8px]" />
               <span className="hidden flex-col sm:flex"><strong className="text-xs text-[#ead4a4]">{name}</strong><small className="text-[9px] text-[#8f7146]">{email}</small></span>
             </Link>
             <button type="button" onClick={() => setLogoutOpen(true)} aria-label="Log out" className="grid h-8 w-8 place-items-center rounded border border-[#e63f4c] text-[#ff4554] transition hover:bg-[#e63f4c] hover:text-white lg:hidden"><LogOut size={15} /></button>
@@ -68,4 +68,8 @@ export default function DashboardShell({ title, subtitle, children }: Props) {
       <LogoutDialog open={logoutOpen} onOpenChange={setLogoutOpen} onConfirm={() => signOut({ callbackUrl: "/login" })}/>
     </main>
   );
+}
+
+function Avatar({ src, initials, className }: { src?: string; initials: string; className: string }) {
+  return <span className={`relative grid shrink-0 place-items-center overflow-hidden rounded-full border border-[#c7963d] bg-gradient-to-br from-[#79402d] to-[#17100b] font-bold ${className}`}>{src ? <Image src={src} alt="Profile" fill sizes="36px" className="object-cover"/> : initials}</span>;
 }
