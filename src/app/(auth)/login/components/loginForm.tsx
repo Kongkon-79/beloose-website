@@ -45,6 +45,8 @@ const LoginForm = () => {
     },
   });
 
+  // console.log(isLoading)
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true);
