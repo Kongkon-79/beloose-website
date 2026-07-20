@@ -66,7 +66,7 @@ export const authOptions: NextAuthOptions = {
             tag: user?.tag,
             gender: user?.gender,
             role: user?.role,
-            profileImage: user?.profileImage,
+            profilePicture: user?.profilePicture,
             token: accessToken,
             accessToken,
           };
@@ -96,13 +96,14 @@ export const authOptions: NextAuthOptions = {
         token.tag = user.tag;
         token.phoneNumber = user.phoneNumber;
         token.role = user.role;
-        token.profileImage = user.profileImage;
+        token.profilePicture = user.profilePicture;
         token.token = user.token ?? user.accessToken;
         token.accessToken = user.token ?? user.accessToken;
       }
       if (trigger === "update" && session) {
         token.fullName = session.fullName ?? token.fullName;
         token.email = session.email ?? token.email;
+        token.profilePicture = session.profilePicture ?? token.profilePicture;
       }
       return token;
     },
@@ -120,7 +121,7 @@ export const authOptions: NextAuthOptions = {
         email: token.email,
         phoneNumber: token.phoneNumber,
         role: token.role,
-        profileImage: token.profileImage,
+        profilePicture: token.profilePicture,
         token: token.token ?? token.accessToken,
         accessToken: token.accessToken ?? token.token,
       };
