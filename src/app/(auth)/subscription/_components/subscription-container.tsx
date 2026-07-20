@@ -1,9 +1,15 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRight, CircleCheck } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { useState } from "react";
+import StripePaymentForm from "./stripe-payment-form";
 
 type Subscription = {
   _id: string;
@@ -20,6 +26,25 @@ type SubscriptionResponse = {
     data?: Subscription[];
   };
 };
+
+type PaymentResponse = {
+  success: boolean;
+  message?: string;
+  data?: {
+    clientSecret: string;
+    paymentIntentId: string;
+    amount: number;
+  };
+};
+
+type PaymentDetails = NonNullable<PaymentResponse["data"]> & {
+  planName: string;
+};
+
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey
+  ? loadStripe(stripePublishableKey)
+  : null;
 
 const getSubscriptions = async (): Promise<Subscription[]> => {
   const apiUrl =
@@ -61,10 +86,83 @@ const billingLabel = (plan: string) => {
 };
 
 const SubscriptionContainer = () => {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const [paymentDetails, setPaymentDetails] =
+    useState<PaymentDetails | null>(null);
   const { data: subscriptions = [], isLoading, error } = useQuery({
     queryKey: ["subscriptions"],
     queryFn: getSubscriptions,
   });
+
+  const { mutate: createPayment, isPending, variables: selectedPlanId } =
+    useMutation({
+      mutationKey: ["create-payment-intent"],
+      mutationFn: async (subscriptionId: string) => {
+        if (!session?.accessToken) {
+          throw new Error("Please log in to continue with your subscription");
+        }
+
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+
+        let response: Response;
+
+        try {
+          response = await fetch(`${apiUrl}/payment/${subscriptionId}`, {
+            method: "POST",
+            headers: {
+              accept: "*/*",
+              Authorization: `Bearer ${session.accessToken}`,
+            },
+          });
+        } catch {
+          throw new Error("Unable to connect to the payment service");
+        }
+
+        let result: PaymentResponse;
+
+        try {
+          result = await response.json();
+        } catch {
+          throw new Error("The payment service returned an invalid response");
+        }
+
+        if (!response.ok || !result.success || !result.data?.clientSecret) {
+          throw new Error(result.message || "Could not start the payment");
+        }
+
+        return result;
+      },
+      onSuccess: (result, subscriptionId) => {
+        const plan = subscriptions.find(({ _id }) => _id === subscriptionId);
+
+        if (!stripePromise) {
+          toast.error("Stripe publishable key is not configured");
+          return;
+        }
+
+        sessionStorage.setItem(
+          "beloosePaymentIntent",
+          JSON.stringify(result.data),
+        );
+        setPaymentDetails({
+          ...result.data!,
+          planName: plan?.planName || "Subscription",
+        });
+      },
+      onError: (paymentError) => {
+        toast.error(
+          paymentError instanceof Error
+            ? paymentError.message
+            : "Could not start the payment",
+        );
+
+        if (!session?.accessToken) {
+          router.push("/login?callbackUrl=/subscription");
+        }
+      },
+    });
 
   return (
     <section className="relative isolate flex min-h-screen w-full items-center justify-center overflow-x-hidden px-4 py-8 sm:px-6">
@@ -142,18 +240,39 @@ const SubscriptionContainer = () => {
                   ))}
                 </ul>
 
-                <Link
-                  href={`/login?subscription=${subscription._id}`}
-                  className="mt-6 flex h-10 w-full items-center justify-center gap-2 rounded-[5px] bg-[#D5AB48] text-xs font-semibold text-[#241A0C] transition-colors hover:bg-[#E2BA5A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFF4D6]"
+                <button
+                  type="button"
+                  disabled={status === "loading" || isPending}
+                  onClick={() => createPayment(subscription._id)}
+                  className="mt-6 flex h-10 w-full items-center justify-center gap-2 rounded-[5px] bg-[#D5AB48] text-xs font-semibold text-[#241A0C] transition-colors hover:bg-[#E2BA5A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFF4D6] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Get Started
+                  {isPending && selectedPlanId === subscription._id
+                    ? "Starting Payment..."
+                    : "Get Started"}
                   <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                </Link>
+                </button>
               </article>
             ))}
           </div>
         )}
       </div>
+
+      {paymentDetails && stripePromise ? (
+        <Elements
+          stripe={stripePromise}
+          options={{ clientSecret: paymentDetails.clientSecret }}
+        >
+          <StripePaymentForm
+            planName={paymentDetails.planName}
+            amount={paymentDetails.amount}
+            clientSecret={paymentDetails.clientSecret}
+            customerName={session?.user?.name}
+            customerEmail={session?.user?.email}
+            onClose={() => router.replace("/payment-cancel")}
+            onSuccess={() => router.replace("/payment-success")}
+          />
+        </Elements>
+      ) : null}
     </section>
   );
 };

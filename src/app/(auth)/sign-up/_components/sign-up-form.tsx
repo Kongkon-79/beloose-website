@@ -23,11 +23,11 @@ import Image from "next/image";
 // import { Checkbox } from "@/components/ui/checkbox";
 // import { Label } from "@/components/ui/label";
 import { useMutation } from "@tanstack/react-query";
+import { signIn } from "next-auth/react";
 
 const formSchema = z
   .object({
     fullName: z.string().min(1, { message: "Full name is required." }),
-    businessName: z.string().min(1, { message: "Retailer shop name is required." }),
     email: z.string().email({ message: "Please enter a valid email address." }),
     password: z
       .string()
@@ -44,6 +44,23 @@ const formSchema = z
 
 type FormValues = z.infer<typeof formSchema>;
 
+type RegisterResponse = {
+  success?: boolean;
+  message?: string;
+  data?: {
+    accessToken?: string;
+    newUser?: {
+      _id: string;
+      fullName: string;
+      email: string;
+      role: string;
+      verfied: string;
+      status: string;
+      isSubscription: boolean;
+    };
+  };
+};
+
 const SignupForm = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -53,7 +70,6 @@ const SignupForm = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: "",
-      businessName: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -65,7 +81,7 @@ const SignupForm = () => {
     mutationKey: ["register-user"],
     mutationFn: async (values: FormValues) => {
       const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+        process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8081/api/v1";
 
       let res: Response;
 
@@ -78,7 +94,6 @@ const SignupForm = () => {
           },
           body: JSON.stringify({
             fullName: values.fullName.trim(),
-            businessName: values.businessName.trim(),
             email: values.email.trim().toLowerCase(),
             password: values.password,
           }),
@@ -87,7 +102,7 @@ const SignupForm = () => {
         throw new Error("Unable to connect to the registration service");
       }
 
-      let data: { success?: boolean; message?: string };
+      let data: RegisterResponse;
 
       try {
         data = await res.json();
@@ -101,9 +116,23 @@ const SignupForm = () => {
 
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success(data?.message || "User registered successfully");
-      router.push("/subscription");
+
+      const loginResult = await signIn("credentials", {
+        registrationAccessToken: data.data?.accessToken,
+        registrationUser: JSON.stringify(data.data?.newUser),
+        redirect: false,
+      });
+
+      if (loginResult?.ok) {
+        router.push("/subscription");
+        router.refresh();
+        return;
+      }
+
+      toast.error("Account created. Please log in to continue.");
+      router.push("/login?callbackUrl=/subscription");
     },
     onError: (error) => {
       toast.error(
@@ -160,26 +189,6 @@ const SignupForm = () => {
                     <Input
                       className={inputClassName}
                       placeholder="Sofia Lindström"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs text-red-400" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="businessName"
-              render={({ field }) => (
-                <FormItem className="space-y-1.5">
-                  <FormLabel className={labelClassName}>
-                    Retailer Shop Name
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      className={inputClassName}
-                      placeholder="Opus X Perfeccion X"
                       {...field}
                     />
                   </FormControl>

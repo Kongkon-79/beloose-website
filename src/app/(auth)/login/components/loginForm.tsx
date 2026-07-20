@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
@@ -60,8 +60,9 @@ const LoginForm = () => {
         throw new Error(res?.error || "Unable to sign in. Please try again.");
       }
 
+      const session = await getSession();
       toast.success("Login successful!");
-      router.replace("/");
+      router.replace(session?.user?.isSubscription ? "/onboarding" : "/subscription");
       router.refresh();
     } catch (error) {
       toast.error(

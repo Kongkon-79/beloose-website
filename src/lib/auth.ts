@@ -4,7 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 interface LoginUser {
   _id: string;
   fullName: string;
-  businessName: string;
+  businessName?: string;
   email: string;
   role: string;
   verfied: string;
@@ -50,8 +50,33 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        registrationAccessToken: { label: "Registration token", type: "text" },
+        registrationUser: { label: "Registration user", type: "text" },
       },
       async authorize(credentials) {
+        if (credentials?.registrationAccessToken && credentials.registrationUser) {
+          try {
+            const registeredUser = JSON.parse(credentials.registrationUser) as LoginUser;
+
+            if (!registeredUser._id || !registeredUser.email) return null;
+
+            return {
+              id: registeredUser._id,
+              name: registeredUser.fullName,
+              email: registeredUser.email,
+              fullName: registeredUser.fullName,
+              businessName: registeredUser.businessName || "",
+              role: registeredUser.role,
+              verified: registeredUser.verfied,
+              status: registeredUser.status,
+              isSubscription: Boolean(registeredUser.isSubscription),
+              accessToken: credentials.registrationAccessToken,
+            } satisfies AuthUser;
+          } catch {
+            return null;
+          }
+        }
+
         const email = credentials?.email?.trim();
         const password = credentials?.password;
 
@@ -99,7 +124,7 @@ export const authOptions: NextAuthOptions = {
           name: user.fullName,
           email: user.email,
           fullName: user.fullName,
-          businessName: user.businessName,
+          businessName: user.businessName || "",
           role: user.role,
           verified: user.verfied,
           status: user.status,
