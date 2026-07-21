@@ -26,7 +26,7 @@ const Toggle = ({
   checked: boolean;
   onChange: (checked: boolean) => void;
 }) => (
-  <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[#383431] bg-[#151312] p-4">
+  <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[#6f5528] bg-[#3B2D16]/55 p-4">
     <span>
       <span className="block text-sm font-medium text-[#e5e1dc]">{label}</span>
       <span className="mt-0.5 block text-xs text-[#8f8a85]">{description}</span>
@@ -78,7 +78,7 @@ const InventoryStep = ({
 
     <section>
       <span className={labelClassName}>Product image</span>
-      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[#61543d] bg-[#151312] p-4 transition hover:border-[#d0a653]">
+      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[#8b6a32] bg-[#3B2D16]/55 p-4 transition hover:border-[#D5AB48]">
         <ImagePlus className="h-6 w-6 text-[#d0a653]" />
         <span className="min-w-0"><span className="block truncate text-sm text-[#ddd8d2]">{image?.name || "Choose a cigar image"}</span><span className="text-xs text-[#8f8a85]">PNG, JPG or WEBP</span></span>
         <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event: ChangeEvent<HTMLInputElement>) => onImageChange(event.target.files?.[0] || null)} />
