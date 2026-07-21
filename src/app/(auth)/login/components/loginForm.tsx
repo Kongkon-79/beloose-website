@@ -15,26 +15,24 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { toast } from "sonner";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z
     .string()
     .min(6, { message: "Password must be at least 6 characters long." }),
-    rememberMe: z.boolean(),
+  rememberMe: z.boolean(),
 });
 
 const LoginForm = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -52,144 +50,139 @@ const LoginForm = () => {
       setIsLoading(true);
 
       const res = await signIn("credentials", {
-        email: values.email,
+        email: values.email.trim().toLowerCase(),
         password: values.password,
+        rememberMe: values.rememberMe,
         redirect: false,
       });
-      if (res?.error) {
-        throw new Error(res.error);
+
+      if (!res || !res.ok || res.error) {
+        throw new Error(res?.error || "Unable to sign in. Please try again.");
       }
 
+      const session = await getSession();
       toast.success("Login successful!");
-      const callbackUrl = searchParams.get("callbackUrl");
-      let destination = "/retailer-dashboard";
-      if (callbackUrl) {
-        try {
-          const callback = new URL(callbackUrl, window.location.origin);
-          if (
-            callback.origin === window.location.origin &&
-            callback.pathname.startsWith("/retailer-dashboard")
-          ) {
-            destination = `${callback.pathname}${callback.search}${callback.hash}`;
-          }
-        } catch {
-          // Ignore invalid callback URLs and use the dashboard default.
-        }
-      }
-      router.replace(destination);
+      router.replace(session?.user?.isSubscription ? "/onboarding" : "/subscription");
       router.refresh();
     } catch (error) {
-      console.error("Login failed:", error);
-      toast.error((error as Error).message);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to sign in. Please try again.",
+      );
     } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <div className="w-full flex items-center justify-center px-4">
-      <div className="w-full md:w-[547px] p-3 md:p-7 lg:p-8 rounded-[16px] bg-white shadow-[0px_5px_10px_0px_#00000029]">
-        <div className="flex items-center justify-center mb-4">
+    <div className="flex w-full items-center justify-center px-4 py-6">
+      <div className="w-full max-w-[590px] rounded-[10px] border border-[#CBA24A] bg-[rgba(19,15,9,0.78)] px-5 py-4 shadow-[0_4px_18px_rgba(0,0,0,0.45)] backdrop-blur-[5px] sm:px-6 sm:py-5">
+        <div className="mb-2 flex items-center justify-center">
           <Link href="/">
             <Image
               src="/assets/images/logo.png"
               alt="Logo"
-              width={100}
-              height={100}
-              className="w-[90px] h-[90px]"
+              width={76}
+              height={76}
+              className="h-[76px] w-[76px] object-contain"
+              priority
             />
           </Link>
         </div>
 
-        <h3 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-primary text-center leading-[120%]">
-          Log in to your account
+        <h3 className="text-center font-[family-name:var(--font-playfair)] text-[30px] font-semibold leading-tight text-[#D5AB48]">
+          Welcome Back
         </h3>
+        <p className="mt-1 text-center text-xs font-normal text-white/90">
+          Sign in to your humidor account
+        </p>
+
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 pt-5 md:pt-6"
+            className="space-y-3 pt-5"
           >
-            {/* Email Field */}
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-1 text-base font-semibold leading-[120%] text-[#4365D0] pb-2">
-                    Email Address/Username
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-xs font-normal text-white">
+                    Email Address
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      className="w-full h-[48px] text-base font-medium leading-[120%] text-primary rounded-[8px] p-4 border border-[#F5F3FA] placeholder:text-[#667481] shadow-[0px_0px_10px_0px_#00000026]"
-                      placeholder="Type your email or username"
+                      className="h-10 w-full rounded-[6px] border-0 bg-[#5A461D]/80 px-3 text-sm text-white shadow-none placeholder:text-[#D6C9A7] focus-visible:ring-1 focus-visible:ring-[#CBA24A]"
+                      placeholder="Enter Your Email Address..."
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage className="text-red-500" />
+                  <FormMessage className="text-xs text-red-400" />
                 </FormItem>
               )}
             />
 
-            {/* Password Field */}
             <FormField
               control={form.control}
               name="password"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-1 text-base font-semibold leading-[120%] text-[#4365D0] pb-2">
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-xs font-normal text-white">
                     Password
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
-                        className="w-full h-[48px] text-base font-medium leading-[120%] text-primary rounded-[8px] p-4 border border-[#F5F3FA] placeholder:text-[#667481] shadow-[0px_0px_10px_0px_#00000026]"
-                        placeholder="********"
+                        className="h-10 w-full rounded-[6px] border-0 bg-[#3B2D16]/80 px-3 pr-10 text-sm text-white shadow-none placeholder:text-[#B7A887] focus-visible:ring-1 focus-visible:ring-[#CBA24A]"
+                        placeholder="Enter Password..."
                         {...field}
                       />
                       <button
                         type="button"
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B7A887] transition-colors hover:text-[#CBA24A]"
                         onClick={() => setShowPassword((prev) => !prev)}
                         tabIndex={-1}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? (
-                          <EyeOff size={20} className="text-[#4365D0]"/>
+                          <EyeOff size={16} />
                         ) : (
-                          <Eye size={20} className="text-[#4365D0]"/>
+                          <Eye size={16} />
                         )}
                       </button>
                     </div>
                   </FormControl>
-                  <FormMessage className="text-red-500" />
+                  <FormMessage className="text-xs text-red-400" />
                 </FormItem>
               )}
             />
-          <FormField
+
+            <FormField
               control={form.control}
               name="rememberMe"
               render={({ field }) => (
-                <div className="w-full flex items-center justify-between">
-                  <FormItem className="flex items-center gap-[10px]">
-                    <FormControl className="mt-1">
+                <div className="flex w-full items-center justify-between pt-0.5">
+                  <FormItem className="flex items-center space-y-0 gap-2">
+                    <FormControl>
                       <Checkbox
                         id="rememberMe"
                         checked={field.value}
                         onCheckedChange={field.onChange}
-                        className="data-[state=checked]:bg-primary data-[state=checked]:text-white border-primary"
+                        className="h-3.5 w-3.5 rounded-[2px] border-[#CBA24A] data-[state=checked]:bg-[#CBA24A] data-[state=checked]:text-[#241A0C]"
                       />
                     </FormControl>
-                    <Label
-                      className="text-sm md:text-base font-medium text-[#4365D0] leading-[120%]"
+                    <label
+                      className="cursor-pointer text-xs font-normal text-white"
                       htmlFor="rememberMe"
                     >
                       Remember Me
-                    </Label>
-                    <FormMessage className="text-red-500" />
+                    </label>
                   </FormItem>
                   <Link
-                    className="text-sm md:text-base font-semibold text-[#667481] cursor-pointer leading-[120%] hover:underline"
+                    className="text-xs font-normal text-[#D5AB48] hover:underline"
                     href="/forgot-password"
                   >
                     Forgot Password?
@@ -199,13 +192,18 @@ const LoginForm = () => {
             />
             <Button
               disabled={isLoading}
-               className="text-base font-semibold text-white leading-[120%] rounded-[8px] w-full h-[48px] bg-primary"
+              className="h-10 w-full rounded-[6px] bg-[#D5AB48] text-sm font-semibold text-[#241A0C] shadow-none hover:bg-[#E2BA5A]"
               type="submit"
             >
               {isLoading ? "Signing In..." : "Sign In"}
             </Button>
 
-             <p className="text-sm md:text-base text-[#1A1A2E] font-normal text-center pt-1 leading-[120%] ">Don’t Have an account? <Link className="text-[#23547B] underline" href="/sign-up">Sign up</Link></p>
+            <p className="pt-2 text-center text-xs font-normal text-white">
+              Don&apos;t have an account?{" "}
+              <Link className="text-[#D5AB48] hover:underline" href="/sign-up">
+                Register Here
+              </Link>
+            </p>
           </form>
         </Form>
       </div>

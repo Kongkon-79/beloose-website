@@ -25,8 +25,17 @@ const formSchema = z.object({
 });
 type FormValues = z.input<typeof formSchema>;
 
+interface ForgotPasswordResponse {
+  statusCode: number;
+  success: boolean;
+  message: string;
+  data?: {
+    message: string;
+  };
+}
+
 const ForgotPasswordForm = () => {
-  const router = useRouter()
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -36,84 +45,107 @@ const ForgotPasswordForm = () => {
 
   const { mutate, isPending } = useMutation({
     mutationKey: ["forgot-password"],
-    mutationFn: (email: string) =>
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      }).then((res) => res.json()),
+    mutationFn: async (email: string) => {
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
-    onSuccess: (data, email) => {
-      if (!data?.success) {
-        toast.error(data?.message || "Something went wrong");
-        return;
+      let response: Response;
+
+      try {
+        response = await fetch(`${apiUrl}/auth/forgot-password`, {
+          method: "POST",
+          headers: {
+            accept: "*/*",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        });
+      } catch {
+        throw new Error("Unable to connect to the password recovery service");
       }
 
-      toast.success(data?.message || "Email sent successfully!");
+      let result: ForgotPasswordResponse;
+
+      try {
+        result = (await response.json()) as ForgotPasswordResponse;
+      } catch {
+        throw new Error("The password recovery service returned an invalid response");
+      }
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Unable to send the recovery email");
+      }
+
+      return result;
+    },
+
+    onSuccess: (result, email) => {
+      toast.success(result.message || "Email sent successfully");
       router.push(`/enter-otp?email=${encodeURIComponent(email)}`);
     },
 
     onError: (error) => {
-      toast.error("Something went wrong. Please try again.");
-      console.error("Forgot password error:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.",
+      );
     },
   });
 
-
-
-
   const onSubmit = (values: FormValues) => {
-    mutate(values.email);
+    mutate(values.email.trim().toLowerCase());
   };
 
   return (
-    <div className="w-full flex items-center justify-center px-4">
-
-      <div className="w-full md:w-[547px] p-3 md:p-7 lg:p-8 rounded-[16px] bg-white shadow-[0px_5px_10px_0px_#00000029]">
-            <div className="flex items-center justify-center mb-4">
+    <div className="flex w-full items-center justify-center px-4 py-6">
+      <div className="w-full max-w-[590px] rounded-[10px] border border-[#CBA24A] bg-[rgba(19,15,9,0.78)] px-5 py-4 shadow-[0_4px_18px_rgba(0,0,0,0.45)] backdrop-blur-[5px] sm:px-6 sm:py-5">
+        <div className="mb-2 flex items-center justify-center">
           <Link href="/">
             <Image
               src="/assets/images/logo.png"
               alt="Logo"
-              width={100}
-              height={100}
-              className="w-[90px] h-[90px]"
+              width={76}
+              height={76}
+              className="h-[76px] w-[76px] object-contain"
+              priority
             />
           </Link>
         </div>
 
-        <h3 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-primary text-center leading-[120%]">
-          Forgot Password
+        <h3 className="text-center font-[family-name:var(--font-playfair)] text-[30px] font-semibold leading-tight text-[#D5AB48]">
+          Forgot Password!
         </h3>
+        <p className="mt-1 text-center text-xs text-white/90">
+          Enter your email to recover your password
+        </p>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-5 md:pt-6">
-            {/* Email Field */}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-5">
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-1 text-base font-semibold leading-[120%] text-[#4365D0] pb-2">
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-xs font-normal text-white">
                     Email Address
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      className="w-full h-[48px] text-base font-medium leading-[120%] text-primary rounded-[8px] p-4 border border-[#F5F3FA] placeholder:text-[#667481] shadow-[0px_0px_10px_0px_#00000026]"
-                      placeholder="Type your Email"
+                      className="h-10 w-full rounded-[6px] border-0 bg-[#4A381A]/85 px-3 text-sm text-white shadow-none placeholder:text-[#C9B990] focus-visible:ring-1 focus-visible:ring-[#CBA24A]"
+                      placeholder="Enter Your Email Address..."
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage className="text-red-500" />
+                  <FormMessage className="text-xs text-red-400" />
                 </FormItem>
               )}
             />
 
             <Button
               disabled={isPending}
-              className="text-base font-semibold text-white leading-[120%] rounded-[8px] w-full h-[48px] bg-primary"
+              className="h-10 w-full rounded-[6px] bg-[#D5AB48] text-sm font-semibold text-[#241A0C] shadow-none hover:bg-[#E2BA5A]"
               type="submit"
             >
               {isPending ? "Sending..." : "Send OTP"}
@@ -121,7 +153,6 @@ const ForgotPasswordForm = () => {
           </form>
         </Form>
       </div>
-      
     </div>
   );
 };
