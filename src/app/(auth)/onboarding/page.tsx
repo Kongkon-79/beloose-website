@@ -6,8 +6,6 @@ export const metadata: Metadata = {
   description: "Set up your Humidor411 retail experience.",
 };
 
-// onboarding page 
-
 const OnboardingPage = () => <OnboardingContainer />;
 
 export default OnboardingPage;
