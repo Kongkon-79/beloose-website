@@ -31,7 +31,21 @@ const BusinessInformationStep = ({
       </label>
       <label>
         <span className={labelClassName}>Phone number</span>
-        <input className={inputClassName} name="phoneNumber" value={data.phoneNumber} onChange={(event) => onFieldChange("phoneNumber", event.target.value)} placeholder="+8801712345678" type="tel" />
+        <input
+          className={inputClassName}
+          name="phoneNumber"
+          value={data.phoneNumber}
+          onChange={(event) =>
+            onFieldChange("phoneNumber", event.target.value)
+          }
+          placeholder="01712345678 or +8801712345678"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+        />
+        <span className="mt-1 block text-[11px] text-[#B7A887]">
+          Use a valid Bangladesh mobile number.
+        </span>
       </label>
     </div>
     <label>

@@ -73,10 +73,10 @@ export type InventoryData = Pick<
 export type InventoryField = Exclude<keyof InventoryData, "shelfes">;
 
 export const inputClassName =
-  "h-[50px] w-full rounded-[12px] border border-[#383431] bg-[#1b1918] px-4 text-sm text-[#e5e1dc] outline-none transition placeholder:text-[#9b9da6] focus:border-[#d1a54d]";
+  "h-[50px] w-full rounded-[12px] border border-[#6f5528] bg-[#3B2D16]/80 px-4 text-sm text-white outline-none transition placeholder:text-[#B7A887] focus:border-[#CBA24A]";
 
 export const labelClassName =
-  "mb-1.5 block text-xs font-medium uppercase tracking-[0.04em] text-[#96918c]";
+  "mb-1.5 block text-xs font-medium uppercase tracking-[0.04em] text-[#D6C9A7]";
 
 export const textareaClassName =
-  "min-h-[104px] w-full resize-none rounded-[12px] border border-[#383431] bg-[#1b1918] px-4 py-3 text-sm text-[#e5e1dc] outline-none transition placeholder:text-[#9b9da6] focus:border-[#d1a54d]";
+  "min-h-[104px] w-full resize-none rounded-[12px] border border-[#6f5528] bg-[#3B2D16]/80 px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#B7A887] focus:border-[#CBA24A]";
