@@ -4,8 +4,8 @@ import InventoryManager from "@/components/retailer-dashboard/InventoryManager";
 export default function InventoryPage() {
   return (
     <DashboardShell
-      title="Inventory Management"
-      subtitle="Track, manage, and optimize your cigar inventory."
+      title="Receive & Manage Inventory"
+      subtitle="Track stock levels, locations, and retail pricing."
     >
       <InventoryManager />
     </DashboardShell>

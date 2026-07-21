@@ -9,6 +9,10 @@ import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
 import LogoutDialog from "./LogoutDialog";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { getMyRetailer, RetailerApiError } from "@/lib/retailer";
+import { useEffect } from "react";
 
 type Props = {
   title: string;
@@ -18,10 +22,16 @@ type Props = {
 
 export default function DashboardShell({ title, subtitle, children }: Props) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const user = session?.user as
     | { fullName?: string; firstName?: string; lastName?: string; email?: string; profilePicture?: string }
     | undefined;
+  const token = (user as typeof user & { accessToken?: string })?.accessToken;
+  const retailerQuery = useQuery({ queryKey: ["retailer", "me"], queryFn: ({ signal }) => getMyRetailer(token!, signal), enabled: Boolean(token), retry: false, staleTime: 5 * 60 * 1000 });
+  useEffect(() => {
+    if (retailerQuery.error instanceof RetailerApiError && retailerQuery.error.status === 404) router.replace("/onboarding");
+  }, [retailerQuery.error, router]);
   const name =
     user?.fullName ||
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||

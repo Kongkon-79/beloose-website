@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
@@ -23,6 +23,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { getMyRetailer, RetailerApiError } from "@/lib/retailer";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -60,7 +61,10 @@ const LoginForm = () => {
         throw new Error(res.error);
       }
 
-      toast.success("Login successful!");
+      const authenticatedSession = await getSession();
+      const accessToken = (authenticatedSession?.user as { accessToken?: string } | undefined)?.accessToken;
+      if (!accessToken) throw new Error("Your session token is missing. Please log in again.");
+
       const callbackUrl = searchParams.get("callbackUrl");
       let destination = "/retailer-dashboard";
       if (callbackUrl) {
@@ -76,6 +80,13 @@ const LoginForm = () => {
           // Ignore invalid callback URLs and use the dashboard default.
         }
       }
+      try {
+        await getMyRetailer(accessToken);
+      } catch (error) {
+        if (error instanceof RetailerApiError && error.status === 404) destination = "/onboarding";
+        else throw error;
+      }
+      toast.success(destination === "/onboarding" ? "Complete your retailer setup" : "Login successful!");
       router.replace(destination);
       router.refresh();
     } catch (error) {

@@ -5,7 +5,7 @@ export default function HumidorsPage() {
   return (
     <DashboardShell
       title="Humidor Management"
-      subtitle="Monitor climate conditions, capacity, and maintenance across all humidors."
+      subtitle="Manage your humidors and their shelves."
     >
       <HumidorManager />
     </DashboardShell>

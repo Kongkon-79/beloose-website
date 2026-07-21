@@ -1,0 +1,96 @@
+export type InventoryItem = {
+  _id: string;
+  name?: string;
+  brand?: string;
+  strength?: "mild" | "medium" | "full";
+  wrapper?: string;
+  size?: string;
+  image?: string;
+  description?: string;
+  humidorId: string;
+  shelfName: string;
+  quantity: number;
+  price: number;
+  lowStockThreshold?: number;
+  status?: "active" | "under_review" | "out_of_stock" | "inactive";
+  isStaffPick?: boolean;
+  staffPickNote?: string;
+  staffPickBy?: string;
+  isNewArrival?: boolean;
+  arrivalDate?: string;
+  isDailyFeatured?: boolean;
+  featuredNote?: string;
+  totalSearches?: number;
+  lastSoldDate?: string;
+  daysSinceLastSale?: number | null;
+  neverSearched?: boolean;
+};
+
+export type InventoryInput = {
+  name: string;
+  brand: string;
+  strength: "" | "mild" | "medium" | "full";
+  wrapper: string;
+  size: string;
+  description: string;
+  humidorId: string;
+  shelfName: string;
+  quantity: string;
+  price: string;
+  lowStockThreshold: string;
+  isStaffPick: boolean;
+  staffPickNote: string;
+  staffPickBy: string;
+  isNewArrival: boolean;
+  arrivalDate: string;
+  isDailyFeatured: boolean;
+  featuredNote: string;
+  image?: File;
+};
+
+export type InventoryPage = { data: InventoryItem[]; meta: { page: number; limit: number; total: number } };
+export type OpportunityResult = { days: number; count: number; data: InventoryItem[] };
+
+async function request<T>(path: string, token: string, init?: RequestInit, signal?: AbortSignal) {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, ...init?.headers }, signal });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.message || "Inventory request failed");
+  return result as T;
+}
+
+export async function getInventory(token: string, page: number, searchTerm: string, signal?: AbortSignal): Promise<InventoryPage> {
+  const params = new URLSearchParams({ page: String(page), limit: "12", sortBy: "createdAt", sortOrder: "desc" });
+  if (searchTerm.trim()) params.set("searchTerm", searchTerm.trim());
+  const result = await request<{ data: InventoryItem[]; meta: InventoryPage["meta"] }>(`/inventory/my-inventory?${params}`, token, undefined, signal);
+  return { data: result.data || [], meta: result.meta };
+}
+
+export async function getInventoryOpportunities(token: string, days: number, signal?: AbortSignal) {
+  const result = await request<{ data: OpportunityResult }>(`/inventory/opportunities/my?days=${days}`, token, undefined, signal);
+  return result.data;
+}
+
+function toFormData(input: InventoryInput) {
+  const body = new FormData();
+  const values: Record<string, string | boolean | File | undefined> = { ...input };
+  for (const [key, value] of Object.entries(values)) {
+    if (value === undefined || value === "") continue;
+    body.append(key, value instanceof File ? value : String(value));
+  }
+  return body;
+}
+
+export async function createInventory(token: string, input: InventoryInput) {
+  const result = await request<{ data: InventoryItem }>("/inventory", token, { method: "POST", body: toFormData(input) });
+  return result.data;
+}
+
+export async function updateInventory(token: string, id: string, input: InventoryInput) {
+  const result = await request<{ data: InventoryItem }>(`/inventory/${id}`, token, { method: "PUT", body: toFormData(input) });
+  return result.data;
+}
+
+export async function deleteInventory(token: string, id: string) {
+  const result = await request<{ data: InventoryItem }>(`/inventory/${id}`, token, { method: "DELETE" });
+  return result.data;
+}

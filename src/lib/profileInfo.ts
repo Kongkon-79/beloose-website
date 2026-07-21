@@ -41,7 +41,7 @@ export async function changePassword(token: string, payload: { oldPassword: stri
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ oldPassword: payload.oldPassword, newPassword: payload.newPassword }),
   });
 
   const resData = await response.json();
@@ -67,10 +67,16 @@ export async function updateProfile(token: string, payload:{ firstName: string; 
 export type UserProfile = {
   _id: string;
   fullName: string;
+  firstName?: string;
+  lastName?: string;
   businessName?: string;
   email: string;
   phoneNumber?: string;
   address?: string;
+  country?: string;
+  stateRegion?: string;
+  nationality?: string;
+  postcode?: string;
   gender?: "male" | "female";
   dateOfBirth?: string;
   profilePicture?: string;

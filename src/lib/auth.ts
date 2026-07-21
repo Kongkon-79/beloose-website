@@ -57,6 +57,7 @@ export const authOptions: NextAuthOptions = {
           return {
             id: user?._id ?? user?.id,
             fullName: user?.fullName,
+            businessName: user?.businessName ?? "",
             firstName: user?.firstName,
             lastName: user?.lastName,
             username: user?.username,
@@ -66,6 +67,8 @@ export const authOptions: NextAuthOptions = {
             tag: user?.tag,
             gender: user?.gender,
             role: user?.role,
+            verified: user?.verified ?? user?.status ?? "pending",
+            isSubscription: Boolean(user?.isSubscription),
             profilePicture: user?.profilePicture,
             token: accessToken,
             accessToken,
@@ -88,6 +91,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id ?? user._id;
         token.fullName = user.fullName;
+        token.businessName = user.businessName;
         token.firstName = user.firstName;
         token.lastName = user.lastName;
         token.username = user.username;
@@ -96,6 +100,8 @@ export const authOptions: NextAuthOptions = {
         token.tag = user.tag;
         token.phoneNumber = user.phoneNumber;
         token.role = user.role;
+        token.verified = user.verified;
+        token.isSubscription = user.isSubscription;
         token.profilePicture = user.profilePicture;
         token.token = user.token ?? user.accessToken;
         token.accessToken = user.token ?? user.accessToken;
@@ -113,6 +119,7 @@ export const authOptions: NextAuthOptions = {
       session.user = {
         id: token.id,
         fullName: token.fullName,
+        businessName: token.businessName,
         firstName: token.firstName,
         lastName: token.lastName,
         username: token.username,
@@ -121,10 +128,13 @@ export const authOptions: NextAuthOptions = {
         email: token.email,
         phoneNumber: token.phoneNumber,
         role: token.role,
+        verified: token.verified,
+        isSubscription: token.isSubscription,
         profilePicture: token.profilePicture,
         token: token.token ?? token.accessToken,
         accessToken: token.accessToken ?? token.token,
       };
+      session.accessToken = token.accessToken ?? token.token;
       return session;
     },
   },
