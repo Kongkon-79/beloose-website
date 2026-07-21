@@ -10,6 +10,7 @@ import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { useState } from "react";
 import StripePaymentForm from "./stripe-payment-form";
+import Link from "next/link";
 
 type Subscription = {
   _id: string;
@@ -88,81 +89,89 @@ const billingLabel = (plan: string) => {
 const SubscriptionContainer = () => {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [paymentDetails, setPaymentDetails] =
-    useState<PaymentDetails | null>(null);
-  const { data: subscriptions = [], isLoading, error } = useQuery({
+  const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(
+    null,
+  );
+  const {
+    data: subscriptions = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["subscriptions"],
     queryFn: getSubscriptions,
   });
 
-  const { mutate: createPayment, isPending, variables: selectedPlanId } =
-    useMutation({
-      mutationKey: ["create-payment-intent"],
-      mutationFn: async (subscriptionId: string) => {
-        if (!session?.accessToken) {
-          throw new Error("Please log in to continue with your subscription");
-        }
+  const {
+    mutate: createPayment,
+    isPending,
+    variables: selectedPlanId,
+  } = useMutation({
+    mutationKey: ["create-payment-intent"],
+    mutationFn: async (subscriptionId: string) => {
+      if (!session?.accessToken) {
+        throw new Error("Please log in to continue with your subscription");
+      }
 
-        const apiUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
-        let response: Response;
+      let response: Response;
 
-        try {
-          response = await fetch(`${apiUrl}/payment/${subscriptionId}`, {
-            method: "POST",
-            headers: {
-              accept: "*/*",
-              Authorization: `Bearer ${session.accessToken}`,
-            },
-          });
-        } catch {
-          throw new Error("Unable to connect to the payment service");
-        }
-
-        let result: PaymentResponse;
-
-        try {
-          result = await response.json();
-        } catch {
-          throw new Error("The payment service returned an invalid response");
-        }
-
-        if (!response.ok || !result.success || !result.data?.clientSecret) {
-          throw new Error(result.message || "Could not start the payment");
-        }
-
-        return result;
-      },
-      onSuccess: (result, subscriptionId) => {
-        const plan = subscriptions.find(({ _id }) => _id === subscriptionId);
-
-        if (!stripePromise) {
-          toast.error("Stripe publishable key is not configured");
-          return;
-        }
-
-        sessionStorage.setItem(
-          "beloosePaymentIntent",
-          JSON.stringify(result.data),
-        );
-        setPaymentDetails({
-          ...result.data!,
-          planName: plan?.planName || "Subscription",
+      try {
+        response = await fetch(`${apiUrl}/payment/${subscriptionId}`, {
+          method: "POST",
+          headers: {
+            accept: "*/*",
+            Authorization: `Bearer ${session.accessToken}`,
+          },
         });
-      },
-      onError: (paymentError) => {
-        toast.error(
-          paymentError instanceof Error
-            ? paymentError.message
-            : "Could not start the payment",
-        );
+      } catch {
+        throw new Error("Unable to connect to the payment service");
+      }
 
-        if (!session?.accessToken) {
-          router.push("/login?callbackUrl=/subscription");
-        }
-      },
-    });
+      let result: PaymentResponse;
+
+      try {
+        result = await response.json();
+      } catch {
+        throw new Error("The payment service returned an invalid response");
+      }
+
+      if (!response.ok || !result.success || !result.data?.clientSecret) {
+        throw new Error(result.message || "Could not start the payment");
+      }
+
+      return result;
+    },
+    onSuccess: (result, subscriptionId) => {
+      const plan = subscriptions.find(({ _id }) => _id === subscriptionId);
+
+      if (!stripePromise) {
+        toast.error("Stripe publishable key is not configured");
+        return;
+      }
+
+      sessionStorage.setItem(
+        "beloosePaymentIntent",
+        JSON.stringify(result.data),
+      );
+      setPaymentDetails({
+        ...result.data!,
+        planName: plan?.planName || "Subscription",
+      });
+    },
+    onError: (paymentError) => {
+      toast.error(
+        paymentError instanceof Error
+          ? paymentError.message
+          : "Could not start the payment",
+      );
+
+      if (!session?.accessToken) {
+        router.push("/login?callbackUrl=/subscription");
+      }
+    },
+  });
 
   return (
     <section className="relative isolate flex min-h-screen w-full items-center justify-center overflow-x-hidden px-4 py-8 sm:px-6">
@@ -198,14 +207,17 @@ const SubscriptionContainer = () => {
                 key={subscription._id}
                 className="flex min-h-[500px] w-full max-w-[560px] flex-col rounded-[9px] border border-[#CBA24A] bg-[rgba(18,12,7,0.82)] px-5 py-5 shadow-[0_12px_35px_rgba(0,0,0,0.55)] backdrop-blur-[7px]"
               >
-                <div className="flex justify-center">
-                  <Image
-                    src="/assets/images/logo.png"
-                    alt="Beloose"
-                    width={76}
-                    height={76}
-                    className="h-[76px] w-[76px] object-contain"
-                  />
+                <div className="mb-2 flex items-center justify-center">
+                  <Link href="/">
+                    <Image
+                      src="/assets/images/logo.png"
+                      alt="Logo"
+                      width={76}
+                      height={76}
+                      className="h-[76px] w-[76px] object-contain"
+                      priority
+                    />
+                  </Link>
                 </div>
 
                 <h1 className="mt-4 text-center font-playfair text-[30px] font-semibold leading-tight text-[#D5AB48]">

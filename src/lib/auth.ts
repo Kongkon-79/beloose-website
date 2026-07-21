@@ -67,7 +67,7 @@ export const authOptions: NextAuthOptions = {
             tag: user?.tag,
             gender: user?.gender,
             role: user?.role,
-            verified: user?.verified ?? user?.status ?? "pending",
+            verified: user?.verified ?? user?.verfied ?? "",
             isSubscription: Boolean(user?.isSubscription),
             profilePicture: user?.profilePicture,
             token: accessToken,
