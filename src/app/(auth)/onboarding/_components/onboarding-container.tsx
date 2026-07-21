@@ -103,6 +103,8 @@ const isValidPhoneNumber = (value: string) => {
 const OnboardingContainer = () => {
   const router = useRouter();
   const { data: session } = useSession();
+  const accessToken = (session?.user as { accessToken?: string } | undefined)?.accessToken;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
   const [step, setStep] = useState(0);
   const [data, setData] = useState<OnboardingData>(initialData);
   const [inventoryImage, setInventoryImage] = useState<File | null>(null);
@@ -174,17 +176,14 @@ const OnboardingContainer = () => {
     useMutation({
       mutationKey: ["create-retailer"],
       mutationFn: async () => {
-        if (!session?.accessToken) {
+        if (!accessToken) {
           throw new Error("Your session has expired. Please log in again.");
         }
-
-        const apiUrl =
-          process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8081/api/v1";
         const response = await fetch(`${apiUrl}/retailer`, {
           method: "POST",
           headers: {
             accept: "*/*",
-            Authorization: `Bearer ${session.accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -219,17 +218,14 @@ const OnboardingContainer = () => {
     useMutation({
       mutationKey: ["create-humidor"],
       mutationFn: async () => {
-        if (!session?.accessToken) {
+        if (!accessToken) {
           throw new Error("Your session has expired. Please log in again.");
         }
-
-        const apiUrl =
-          process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8081/api/v1";
         const response = await fetch(`${apiUrl}/humidor`, {
           method: "POST",
           headers: {
             accept: "*/*",
-            Authorization: `Bearer ${session.accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -261,7 +257,7 @@ const OnboardingContainer = () => {
     useMutation({
       mutationKey: ["create-inventory"],
       mutationFn: async () => {
-        if (!session?.accessToken) {
+        if (!accessToken) {
           throw new Error("Your session has expired. Please log in again.");
         }
         if (!data.humidorId) {
@@ -292,13 +288,11 @@ const OnboardingContainer = () => {
         formData.append("featuredNote", data.featuredNote.trim());
         formData.append("image", inventoryImage);
 
-        const apiUrl =
-          process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8081/api/v1";
         const response = await fetch(`${apiUrl}/inventory`, {
           method: "POST",
           headers: {
             accept: "*/*",
-            Authorization: `Bearer ${session.accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: formData,
         });

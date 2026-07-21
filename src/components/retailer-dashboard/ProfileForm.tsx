@@ -1,84 +1,126 @@
 "use client";
 
+import { getProfileSettings, updateProfileSettings, type UserProfile } from "@/lib/profileInfo";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera } from "lucide-react";
-import Image from "next/image";
+import { Pencil } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getProfileSettings, updateProfileSettings, type UserProfile } from "@/lib/profileInfo";
 import DashboardState from "./DashboardState";
+import ProfileHero from "./ProfileHero";
 import ProfileSkeleton from "./ProfileSkeleton";
 
-const inputClass = "h-10 w-full rounded border border-[#d4c091] bg-transparent px-3 text-xs text-[#f0ddb0] outline-none placeholder:text-[#a98d5b] focus:border-[#d2a13d] disabled:opacity-60";
+const inputClass = "h-9 w-full rounded border border-[#d5c39b] bg-transparent px-3 text-[11px] text-[#f0ddb0] outline-none placeholder:text-[#aa8e5b] read-only:cursor-default focus:border-[#d2a13d] disabled:opacity-60";
+const countries = ["Bangladesh", "Canada", "India", "United Arab Emirates", "United Kingdom", "United States"];
+const nationalities = ["Bangladeshi", "British", "Canadian", "Emirati", "Indian", "American"];
 
 export default function ProfileForm() {
   const { data: session, status, update } = useSession();
   const sessionUser = session?.user as { accessToken?: string; profilePicture?: string } | undefined;
   const token = sessionUser?.accessToken;
-  const query = useQuery({
-    queryKey: ["profile-settings"],
-    queryFn: () => getProfileSettings(token!),
-    enabled: Boolean(token),
-  });
+  const query = useQuery({ queryKey: ["profile-settings"], queryFn: () => getProfileSettings(token!), enabled: Boolean(token) });
+
   useEffect(() => {
-    if (query.data?.profilePicture && query.data.profilePicture !== sessionUser?.profilePicture) {
-      void update({ profilePicture: query.data.profilePicture });
-    }
+    if (query.data?.profilePicture && query.data.profilePicture !== sessionUser?.profilePicture) void update({ profilePicture: query.data.profilePicture });
   }, [query.data?.profilePicture, sessionUser?.profilePicture, update]);
 
   if (status === "loading" || query.isLoading || (status === "authenticated" && !token)) return <ProfileSkeleton/>;
   if (query.isError) return <DashboardState type="error" message={query.error instanceof Error ? query.error.message : "Something went wrong while loading your profile."} onRetry={() => query.refetch()}/>;
   if (!query.data) return <DashboardState type="empty" message="Your profile data was not found."/>;
-
-  return <ProfileEditor user={query.data} token={token!}/>;
+  return <ProfileEditor initialUser={query.data} token={token!}/>;
 }
 
-function ProfileEditor({ user: initialUser, token }: { user: UserProfile; token: string }) {
-  const [user, setUser] = useState(initialUser);
+function ProfileEditor({ initialUser, token }: { initialUser: UserProfile; token: string }) {
+  const [user, setUser] = useState(() => normalizeUser(initialUser));
+  const [savedUser, setSavedUser] = useState(() => normalizeUser(initialUser));
+  const [editing, setEditing] = useState<"personal" | "contact" | null>(null);
   const [profilePicture, setProfilePicture] = useState<File>();
   const [previewUrl, setPreviewUrl] = useState<string>();
   const queryClient = useQueryClient();
   const { update } = useSession();
   const mutation = useMutation({
     mutationFn: () => updateProfileSettings(token, {
-      fullName: user.fullName,
+      fullName: `${user.firstName} ${user.lastName}`.trim(),
+      firstName: user.firstName,
+      lastName: user.lastName,
       businessName: user.businessName,
+      email: user.email,
       phoneNumber: user.phoneNumber,
       address: user.address,
       gender: user.gender,
       dateOfBirth: user.dateOfBirth || undefined,
+      country: user.country,
+      stateRegion: user.stateRegion,
+      nationality: user.nationality,
+      postcode: user.postcode,
     }, profilePicture),
-    onSuccess: async (data) => {
-      setUser(data);
-      setProfilePicture(undefined);
+    onSuccess: async data => {
+      const normalized = normalizeUser(data);
+      setUser(normalized); setSavedUser(normalized); setEditing(null); setProfilePicture(undefined);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(undefined);
-      queryClient.setQueryData(["profile-settings"], data);
+      setPreviewUrl(undefined); queryClient.setQueryData(["profile-settings"], data);
       await update({ fullName: data.fullName, email: data.email, profilePicture: data.profilePicture });
       toast.success("Profile updated successfully");
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Profile update failed"),
+    onError: error => toast.error(error instanceof Error ? error.message : "Profile update failed"),
   });
-  const initials = user.fullName.split(" ").map(part => part[0]).join("").slice(0, 2).toUpperCase();
-  const imageUrl = previewUrl || user.profilePicture;
-  const setUserField = (field: keyof UserProfile, value: string) => setUser(current => ({ ...current, [field]: value }));
-  const selectProfilePicture = (file?: File) => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setProfilePicture(file);
-    setPreviewUrl(file ? URL.createObjectURL(file) : undefined);
-  };
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
+  const field = (key: keyof UserProfile, value: string) => setUser(current => ({ ...current, [key]: value }));
+  const choosePicture = (file?: File) => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setProfilePicture(file); setPreviewUrl(file ? URL.createObjectURL(file) : undefined); setEditing("personal");
+  };
+  const cancel = () => {
+    setUser(savedUser); setEditing(null); setProfilePicture(undefined);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(undefined);
+  };
   const submit = (event: FormEvent) => { event.preventDefault(); mutation.mutate(); };
+  const fullName = `${user.firstName} ${user.lastName}`.trim() || user.fullName;
 
-  return <div className="min-h-[calc(100vh-72px)] bg-[#3b2918] p-3 sm:p-5">
-    <section className="relative overflow-hidden rounded-lg bg-[#261407]"><div className="h-32 bg-[linear-gradient(to_bottom,rgba(0,0,0,.25),rgba(45,26,8,.85)),url('/assets/images/footer_bg.png')] bg-cover bg-center"/><div className="relative -mt-12 flex items-end gap-3 px-4 pb-4"><label className="group relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-[#d2a13d] bg-[#573621]" aria-label="Choose profile image"><span className="grid h-full w-full place-items-center font-playfair text-lg text-[#d5a744]">{imageUrl ? <Image src={imageUrl} alt="Profile" fill sizes="64px" className="object-cover"/> : initials}</span><span className="absolute bottom-1 right-1 grid h-6 w-6 place-items-center rounded-full bg-[#d2a13d] text-[#291806] shadow"><Camera size={13}/></span><input className="sr-only" type="file" accept="image/*" onChange={event => selectProfilePicture(event.target.files?.[0])}/></label><div><h2 className="font-playfair text-xl font-semibold">{user.fullName}</h2><p className="text-[10px] text-[#b89a67]">{user.email}</p><p className="mt-1 text-[9px] text-[#d2a13d]">{profilePicture ? "New image selected · Save changes to upload" : "Click the photo to change profile image"}</p></div></div></section>
+  return <div className="min-h-[calc(100vh-72px)] bg-[#3b2918] p-3 sm:p-4">
+    <ProfileHero name={fullName} businessName={user.businessName} profilePicture={previewUrl || user.profilePicture} editable onImageChange={choosePicture}/>
     <form onSubmit={submit} className="mt-4 space-y-4">
-      <FormSection title="Account Information"><div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><Field label="Full Name" value={user.fullName} onChange={value => setUserField("fullName", value)} required/><Field label="Email" value={user.email} type="email" disabled/><Field label="Business Name" value={user.businessName || ""} onChange={value => setUserField("businessName", value)}/><Field label="Date of Birth" value={user.dateOfBirth?.slice(0, 10) || ""} onChange={value => setUserField("dateOfBirth", value)} type="date"/><Field label="Phone Number" value={user.phoneNumber || ""} onChange={value => setUserField("phoneNumber", value)}/><label className="flex flex-col gap-1.5 text-[11px]"><span>Gender</span><select className={inputClass} value={user.gender || ""} onChange={event => setUserField("gender", event.target.value)}><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option></select></label><Field wide label="Address" value={user.address || ""} onChange={value => setUserField("address", value)}/></div></FormSection>
-      <div className="flex justify-end"><button disabled={mutation.isPending} className="h-10 rounded bg-[#d2a13d] px-6 text-xs font-semibold text-[#291806] disabled:cursor-not-allowed disabled:opacity-60">{mutation.isPending ? "Saving..." : "Save Changes"}</button></div>
+      <FormSection title="Personal Information" editing={editing === "personal"} onEdit={() => setEditing("personal")} onCancel={cancel} pending={mutation.isPending}>
+        <div className="grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-2">
+          <Field label="First Name" value={user.firstName || ""} onChange={value => field("firstName", value)} readOnly={editing !== "personal"}/>
+          <Field label="Last Name" value={user.lastName || ""} onChange={value => field("lastName", value)} readOnly={editing !== "personal"}/>
+          <Field wide label="Shop Name" value={user.businessName || ""} onChange={value => field("businessName", value)} readOnly={editing !== "personal"}/>
+          <Field label="Date of Birth" value={user.dateOfBirth?.slice(0, 10) || ""} onChange={value => field("dateOfBirth", value)} type="date" readOnly={editing !== "personal"}/>
+          <fieldset className="flex flex-col gap-2 text-[11px]"><legend>Gender</legend><div className="flex h-9 items-center gap-5"><Radio label="Male" checked={user.gender === "male"} disabled={editing !== "personal"} onChange={() => field("gender", "male")}/><Radio label="Female" checked={user.gender === "female"} disabled={editing !== "personal"} onChange={() => field("gender", "female")}/></div></fieldset>
+        </div>
+      </FormSection>
+      <FormSection title="Contact Information" editing={editing === "contact"} onEdit={() => setEditing("contact")} onCancel={cancel} pending={mutation.isPending}>
+        <div className="grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-2">
+          <Field label="Email" value={user.email} onChange={value => field("email", value)} placeholder="Enter your email address" type="email" readOnly={editing !== "contact"}/>
+          <Field label="Phone Number" value={user.phoneNumber || ""} onChange={value => field("phoneNumber", value)} placeholder="Enter your phone number" readOnly={editing !== "contact"}/>
+          <SelectField label="Country" value={user.country || ""} values={countries} onChange={value => field("country", value)} disabled={editing !== "contact"}/>
+          <Field label="State/Region" value={user.stateRegion || ""} onChange={value => field("stateRegion", value)} placeholder="Choose any one" readOnly={editing !== "contact"}/>
+          <SelectField label="Nationality" value={user.nationality || ""} values={nationalities} onChange={value => field("nationality", value)} disabled={editing !== "contact"}/>
+          <Field label="Postcode" value={user.postcode || ""} onChange={value => field("postcode", value)} placeholder="e.g. 5585" readOnly={editing !== "contact"}/>
+          <label className="flex flex-col gap-1.5 text-[11px] sm:col-span-2"><span>Address</span><textarea value={user.address || ""} onChange={event => field("address", event.target.value)} placeholder="Enter your full address" readOnly={editing !== "contact"} className={`${inputClass} h-20 resize-none py-3`}/></label>
+        </div>
+      </FormSection>
     </form>
   </div>;
 }
 
-function FormSection({ title, children }: { title: string; children: React.ReactNode }) { return <section className="rounded-lg bg-[#59401f] p-4"><h3 className="mb-4 text-sm font-semibold">{title}</h3>{children}</section>; }
-function Field({ label, value, onChange, type = "text", wide, required, disabled }: { label: string; value: string; onChange?: (value: string) => void; type?: string; wide?: boolean; required?: boolean; disabled?: boolean }) { return <label className={`flex flex-col gap-1.5 text-[11px] ${wide ? "sm:col-span-2" : ""}`}><span>{label}</span><input className={inputClass} type={type} value={value} onChange={event => onChange?.(event.target.value)} required={required} disabled={disabled}/></label>; }
+function normalizeUser(user: UserProfile): UserProfile {
+  if (user.firstName || user.lastName) return user;
+  const parts = user.fullName.trim().split(/\s+/);
+  return { ...user, firstName: parts[0] || "", lastName: parts.slice(1).join(" ") };
+}
+
+function FormSection({ title, editing, onEdit, onCancel, pending, children }: { title: string; editing: boolean; onEdit: () => void; onCancel: () => void; pending: boolean; children: React.ReactNode }) {
+  return <section className="rounded-md bg-[#59401f] p-4"><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold">{title}</h3>{editing ? <div className="flex gap-2"><button type="button" onClick={onCancel} className="h-7 rounded border border-[#b88b35] px-3 text-[9px]">Cancel</button><button disabled={pending} className="h-7 rounded bg-[#d2a13d] px-3 text-[9px] font-semibold text-[#291806]">{pending ? "Saving..." : "Save"}</button></div> : <button type="button" aria-label={`Edit ${title}`} onClick={onEdit} className="text-[#f0d796] transition hover:text-[#d2a13d]"><Pencil size={15}/></button>}</div>{children}</section>;
+}
+function Field({ label, value, onChange, type = "text", wide, placeholder, readOnly }: { label: string; value: string; onChange: (value: string) => void; type?: string; wide?: boolean; placeholder?: string; readOnly?: boolean }) {
+  return <label className={`flex flex-col gap-1.5 text-[11px] ${wide ? "sm:col-span-2" : ""}`}><span>{label}</span><input className={inputClass} type={type} value={value} placeholder={placeholder} onChange={event => onChange(event.target.value)} readOnly={readOnly}/></label>;
+}
+function SelectField({ label, value, values, onChange, disabled }: { label: string; value: string; values: string[]; onChange: (value: string) => void; disabled: boolean }) {
+  const options = value && !values.includes(value) ? [value, ...values] : values;
+  return <label className="flex flex-col gap-1.5 text-[11px]"><span>{label}</span><select className={inputClass} value={value} onChange={event => onChange(event.target.value)} disabled={disabled}><option value="">Choose any one</option>{options.map(option => <option value={option} key={option}>{option}</option>)}</select></label>;
+}
+function Radio({ label, checked, disabled, onChange }: { label: string; checked: boolean; disabled: boolean; onChange: () => void }) {
+  return <label className="flex items-center gap-1 text-[#cfb47e]"><input type="radio" checked={checked} disabled={disabled} onChange={onChange} className="accent-[#d2a13d]"/>{label}</label>;
+}

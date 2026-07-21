@@ -4,8 +4,8 @@ import DashboardShell from "@/components/retailer-dashboard/DashboardShell";
 export default function RetailerDashboardPage() {
   return (
     <DashboardShell
-      title="Dashboard Overview"
-      subtitle="Good morning — here's your business snapshot for today."
+      title="Today"
+      subtitle="Welcome back to your retailer dashboard."
     >
       <DashboardOverview />
     </DashboardShell>
