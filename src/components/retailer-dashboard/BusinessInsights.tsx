@@ -52,7 +52,7 @@ function LineChart({ data }: { data: Insights["salesTrend"] }) {
   const max = Math.max(1, ...data.map(item => item.revenue));
   const points = data.map((item, index) => ({ ...item, x: left + index * ((width - left - right) / Math.max(1, data.length - 1)), y: top + (1 - item.revenue / max) * (height - top - bottom) }));
   const hasData = data.some(item => item.revenue > 0);
-  return <div className="relative h-64 w-full overflow-hidden" aria-label="Monthly revenue line chart"><svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="h-full w-full" role="img"><title>Monthly revenue for {data.map(item => `${item.month}: ${money(item.revenue)}`).join(", ")}</title>{[0, .25, .5, .75, 1].map(portion => { const y = top + portion * (height - top - bottom); const value = max * (1 - portion); return <g key={portion}><line x1={left} x2={width - right} y1={y} y2={y} stroke="#5f401d" strokeDasharray="3 5"/><text x={left - 8} y={y + 4} textAnchor="end" fill="#a98b5c" fontSize="11">{compact(value)}</text></g>; })}{points.map(point => <text key={point.month} x={point.x} y={height - 9} textAnchor="middle" fill="#a98b5c" fontSize="11">{point.month}</text>)}<polyline points={points.map(point => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#d2a13d" strokeWidth="3" vectorEffect="non-scaling-stroke"/>{hasData && points.map(point => <circle key={point.month} cx={point.x} cy={point.y} r="4" fill="#d2a13d" stroke="#2d1a08" strokeWidth="2" vectorEffect="non-scaling-stroke"><title>{point.month}: {money(point.revenue)}</title></circle>)}</svg>{!hasData && <ChartEmpty message="No sales revenue recorded for this year."/>}</div>;
+  return <div className="relative h-64 w-full overflow-hidden" aria-label="Monthly revenue line chart"><svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="h-full w-full" role="img"><title>Monthly revenue for {data.map(item => `${item.month}: ${money(item.revenue)}`).join(", ")}</title>{[0, .25, .5, .75, 1].map(portion => { const y = top + portion * (height - top - bottom); const value = max * (1 - portion); return <g key={portion}><line x1={left} x2={width - right} y1={y} y2={y} stroke="#5f401d" strokeDasharray="3 5"/><text x={left - 8} y={y + 4} textAnchor="end" fill="#a98b5c" fontSize="11">{compact(value)}</text></g>; })}{points.map(point => <text key={point.month} x={point.x} y={height - 9} textAnchor="middle" fill="#a98b5c" fontSize="11">{point.month}</text>)}<path d={smoothPath(points, top, height - bottom)} fill="none" stroke="#d2a13d" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>{hasData && points.map(point => <circle key={point.month} cx={point.x} cy={point.y} r="4" fill="#d2a13d" stroke="#2d1a08" strokeWidth="2" vectorEffect="non-scaling-stroke"><title>{point.month}: {money(point.revenue)}</title></circle>)}</svg>{!hasData && <ChartEmpty message="No sales revenue recorded for this year."/>}</div>;
 }
 
 function StrengthChart({ data }: { data: Insights["strengthDistribution"] }) {
@@ -80,6 +80,19 @@ function EmptyBlock({ message }: { message: string }) { return <div className="f
 function money(value: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value || 0); }
 function compact(value: number) { return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(value); }
 function label(value: string) { return value === "unknown" ? "Not set" : value.replaceAll("_", "-"); }
+function smoothPath(points: Array<{ x: number; y: number }>, minY: number, maxY: number) {
+  if (!points.length) return "";
+  const clamp = (value: number) => Math.min(maxY, Math.max(minY, value));
+  const tension = 3.25;
+  return points.slice(0, -1).reduce((path, point, index) => {
+    const previous = points[Math.max(0, index - 1)];
+    const next = points[index + 1];
+    const afterNext = points[Math.min(points.length - 1, index + 2)];
+    const control1 = { x: point.x + (next.x - previous.x) / tension, y: clamp(point.y + (next.y - previous.y) / tension) };
+    const control2 = { x: next.x - (afterNext.x - point.x) / tension, y: clamp(next.y - (afterNext.y - point.y) / tension) };
+    return `${path} C ${control1.x},${control1.y} ${control2.x},${control2.y} ${next.x},${next.y}`;
+  }, `M ${points[0].x},${points[0].y}`);
+}
 
 function InsightsSkeleton() {
   return <div className="min-h-[calc(100vh-72px)] space-y-4 bg-[#3b2918] p-3 sm:p-4" aria-label="Loading business insights"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[0,1,2,3].map(item => <Skeleton key={item} className="h-28 bg-[#513719]"/>)}</div><Skeleton className="h-80 bg-[#513719]"/><div className="grid gap-4 xl:grid-cols-2"><Skeleton className="h-72 bg-[#513719]"/><Skeleton className="h-72 bg-[#513719]"/></div><Skeleton className="h-80 bg-[#513719]"/></div>;
