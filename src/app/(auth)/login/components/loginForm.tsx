@@ -1,10 +1,10 @@
-"use client";
+'use client'
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -12,67 +12,67 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
-import { Checkbox } from "@/components/ui/checkbox";
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { useState } from 'react'
+import { signIn } from 'next-auth/react'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
+import { Eye, EyeOff } from 'lucide-react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { Checkbox } from '@/components/ui/checkbox'
 
 const formSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z
     .string()
-    .min(6, { message: "Password must be at least 6 characters long." }),
+    .min(6, { message: 'Password must be at least 6 characters long.' }),
   rememberMe: z.boolean(),
-});
+})
 
 const LoginForm = () => {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: '',
+      password: '',
       rememberMe: true,
     },
-  });
+  })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      setIsLoading(true);
+      setIsLoading(true)
 
-      const res = await signIn("credentials", {
+      const res = await signIn('credentials', {
         email: values.email.trim().toLowerCase(),
         password: values.password,
         rememberMe: values.rememberMe,
         redirect: false,
-      });
+      })
 
       if (!res || !res.ok || res.error) {
-        throw new Error(res?.error || "Unable to sign in. Please try again.");
+        throw new Error(res?.error || 'Unable to sign in. Please try again.')
       }
 
       // const session = await getSession();
-      toast.success("Login successful!");
+      toast.success('Login successful!')
       // router.replace(session?.user?.isSubscription ? "/retailer-dashboard" : "/subscription");
-      router.push("/retailer-dashboard")
-      router.refresh();
+      router.push('/retailer-dashboard')
+      router.refresh()
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Unable to sign in. Please try again.",
-      );
+          : 'Unable to sign in. Please try again.',
+      )
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
@@ -136,7 +136,7 @@ const LoginForm = () => {
                   <FormControl>
                     <div className="relative">
                       <Input
-                        type={showPassword ? "text" : "password"}
+                        type={showPassword ? 'text' : 'password'}
                         className="h-10 w-full rounded-[6px] border-0 bg-[#3B2D16]/80 px-3 pr-10 text-sm text-white shadow-none placeholder:text-[#B7A887] focus-visible:ring-1 focus-visible:ring-[#CBA24A]"
                         placeholder="Enter Password..."
                         {...field}
@@ -144,9 +144,11 @@ const LoginForm = () => {
                       <button
                         type="button"
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B7A887] transition-colors hover:text-[#CBA24A]"
-                        onClick={() => setShowPassword((prev) => !prev)}
+                        onClick={() => setShowPassword(prev => !prev)}
                         tabIndex={-1}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={
+                          showPassword ? 'Hide password' : 'Show password'
+                        }
                       >
                         {showPassword ? (
                           <EyeOff size={16} />
@@ -196,11 +198,11 @@ const LoginForm = () => {
               className="h-10 w-full rounded-[6px] bg-[#D5AB48] text-sm font-semibold text-[#241A0C] shadow-none hover:bg-[#E2BA5A]"
               type="submit"
             >
-              {isLoading ? "Signing In..." : "Sign In"}
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </Button>
 
             <p className="pt-2 text-center text-xs font-normal text-white">
-              Don&apos;t have an account?{" "}
+              Don&apos;t have an account?{' '}
               <Link className="text-[#D5AB48] hover:underline" href="/sign-up">
                 Register Here
               </Link>
@@ -209,7 +211,7 @@ const LoginForm = () => {
         </Form>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default LoginForm;
+export default LoginForm
