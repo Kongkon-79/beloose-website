@@ -11,6 +11,7 @@ import {
   Store,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
@@ -72,9 +73,32 @@ const requiredFields: (keyof OnboardingData)[][] = [
   ["storeName", "address", "city", "phoneNumber", "description"],
   ["humidorName", "humidorLocation", "humidorDescription"],
   ["inventoryName", "inventoryBrand", "inventoryStrength", "inventoryWrapper", "inventorySize", "inventoryDescription", "inventoryShelfName", "inventoryQuantity", "inventoryPrice", "lowStockThreshold"],
-  ["qrStyle", "qrPlacement"],
+  [],
   [],
 ];
+
+const normalizePhoneNumber = (value: string) => {
+  const phoneNumber = value.trim().replace(/[\s()-]/g, "");
+
+  if (/^01[3-9]\d{8}$/.test(phoneNumber)) {
+    return `+88${phoneNumber}`;
+  }
+  if (/^8801[3-9]\d{8}$/.test(phoneNumber)) {
+    return `+${phoneNumber}`;
+  }
+
+  return phoneNumber;
+};
+
+const isValidPhoneNumber = (value: string) => {
+  const phoneNumber = normalizePhoneNumber(value);
+
+  if (phoneNumber.startsWith("+880")) {
+    return /^\+8801[3-9]\d{8}$/.test(phoneNumber);
+  }
+
+  return /^\+[1-9]\d{7,14}$/.test(phoneNumber);
+};
 
 const OnboardingContainer = () => {
   const router = useRouter();
@@ -165,7 +189,7 @@ const OnboardingContainer = () => {
           body: JSON.stringify({
             storeName: data.storeName.trim(),
             address: data.address.trim(),
-            phoneNumber: data.phoneNumber.trim(),
+            phoneNumber: normalizePhoneNumber(data.phoneNumber),
             city: data.city.trim(),
             description: data.description.trim(),
           }),
@@ -175,10 +199,15 @@ const OnboardingContainer = () => {
           success?: boolean;
           message?: string;
           data?: { _id?: string };
+          errorSources?: Array<{ message?: string }>;
         };
 
         if (!response.ok || !result.success || !result.data?._id) {
-          throw new Error(result.message || "Could not create retailer profile");
+          throw new Error(
+            result.errorSources?.[0]?.message ||
+              result.message ||
+              "Could not create retailer profile",
+          );
         }
 
         return result;
@@ -290,6 +319,13 @@ const OnboardingContainer = () => {
       return;
     }
 
+    if (step === 0 && !isValidPhoneNumber(data.phoneNumber)) {
+      toast.error(
+        "Enter a valid phone number, for example 01712345678 or +8801712345678",
+      );
+      return;
+    }
+
     if (
       step === 1 &&
       data.shelfes.some((shelf) => !shelf.name.trim() || !shelf.description.trim())
@@ -374,14 +410,24 @@ const OnboardingContainer = () => {
     }
     localStorage.removeItem("humidor411-onboarding");
     toast.success("Your Humidor411 workspace is ready!");
-    router.replace("/");
+    router.replace("/retailer-dashboard");
   };
 
   const CurrentIcon = steps[step].icon;
   return (
-    <main className="min-h-screen bg-[#100f0e] text-white">
-      <header className="flex h-[68px] items-center justify-between border-b border-[#2f2b28] px-5 sm:px-10">
-        <div className="font-playfair text-2xl font-semibold text-[#d2a64e]">
+    <main className="relative isolate min-h-screen overflow-hidden text-white">
+      <Image
+        src="/assets/images/auth_bg.png"
+        alt="Premium cigar lounge"
+        fill
+        priority
+        sizes="100vw"
+        className="-z-20 object-cover"
+      />
+      <div className="absolute inset-0 -z-10 bg-black/45" />
+
+      <header className="flex h-[68px] items-center justify-between border-b border-[#CBA24A]/30 bg-[#130f09]/75 px-5 backdrop-blur-md sm:px-10">
+        <div className="font-playfair text-2xl font-semibold text-[#D5AB48]">
           Humidor411
         </div>
         <div className="text-sm text-[#9e9994]">
@@ -390,9 +436,9 @@ const OnboardingContainer = () => {
       </header>
 
       <div className="px-5 pb-14 pt-6 sm:px-10">
-        <div className="h-1.5 overflow-hidden rounded-full bg-[#302e2c]">
+        <div className="h-1.5 overflow-hidden rounded-full bg-[#3B2D16]/80">
           <div
-            className="h-full rounded-full bg-[#d0a34c] transition-all duration-300"
+            className="h-full rounded-full bg-[#D5AB48] transition-all duration-300"
             style={{ width: `${((step + 1) / steps.length) * 100}%` }}
           />
         </div>
@@ -412,20 +458,20 @@ const OnboardingContainer = () => {
                   <span
                     className={`flex h-10 w-10 items-center justify-center rounded-full border ${
                       active
-                        ? "border-[#d2a64e] text-[#d2a64e]"
+                        ? "border-[#D5AB48] bg-[#241A0C]/80 text-[#D5AB48]"
                         : complete
-                          ? "border-[#d2a64e] bg-[#d2a64e] text-black"
-                          : "border-transparent bg-[#302e2c] text-[#99948f]"
+                          ? "border-[#D5AB48] bg-[#D5AB48] text-[#241A0C]"
+                          : "border-[#6f5528] bg-[#3B2D16]/80 text-[#B7A887]"
                     }`}
                   >
                     {complete ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                   </span>
-                  <span className={`mt-2 text-center text-xs ${active ? "text-white" : "text-[#9c9893]"}`}>
+                  <span className={`mt-2 text-center text-xs ${active ? "text-[#F5E7C2]" : "text-[#B7A887]"}`}>
                     {item.title}
                   </span>
                 </button>
                 {index < steps.length - 1 ? (
-                  <span className="mt-5 h-px min-w-4 flex-1 bg-[#3a3734]" />
+                  <span className="mt-5 h-px min-w-4 flex-1 bg-[#CBA24A]/30" />
                 ) : null}
               </div>
             );
@@ -434,14 +480,18 @@ const OnboardingContainer = () => {
 
         <form
           onSubmit={submit}
-          className="mx-auto mt-10 w-full max-w-[672px] rounded-[15px] border border-[#393532] bg-[#191716] px-6 py-10 sm:px-10"
+          className="mx-auto mt-10 w-full max-w-[672px] rounded-[15px] border border-[#CBA24A] bg-[rgba(19,15,9,0.86)] px-6 py-10 shadow-[0_12px_35px_rgba(0,0,0,0.55)] backdrop-blur-[7px] sm:px-10"
         >
           <div className="flex items-center gap-4">
-            <CurrentIcon className="h-8 w-8 text-[#d2a64e]" />
+            <CurrentIcon className="h-8 w-8 text-[#D5AB48]" />
             <div>
-              <h1 className="font-playfair text-[28px] text-[#ece7e2]">{steps[step].title}</h1>
-              <p className="text-sm text-[#96918d]">
-                {step === 0 ? "Tell us about your shop" : `Complete your ${steps[step].short.toLowerCase()} setup`}
+              <h1 className="font-playfair text-[28px] text-[#F5E7C2]">{steps[step].title}</h1>
+              <p className="text-sm text-[#B7A887]">
+                {step === 0
+                  ? "Tell us about your shop"
+                  : step === steps.length - 1
+                    ? "You're all set"
+                    : `Complete your ${steps[step].short.toLowerCase()} setup`}
               </p>
             </div>
           </div>
@@ -470,29 +520,29 @@ const OnboardingContainer = () => {
                 onImageChange={setInventoryImage}
               />
             )}
-            {step === 3 && <QrCodeStep data={data} onChange={update} />}
-            {step === 4 && <ReadyToLaunchStep data={data} />}
+            {step === 3 && <QrCodeStep />}
+            {step === 4 && <ReadyToLaunchStep />}
           </div>
 
           <div className="mt-8 flex items-center justify-between">
             <button
               type="button"
               onClick={() => (step === 0 ? router.back() : setStep((current) => current - 1))}
-              className="flex items-center gap-2 text-sm text-[#9e9994] hover:text-white"
+              className="flex items-center gap-2 text-sm text-[#B7A887] hover:text-[#F5E7C2]"
             >
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
             <button
               type="submit"
               disabled={isCreatingRetailer || isCreatingHumidor || isCreatingInventory}
-              className="flex h-11 items-center justify-center gap-2 rounded-[12px] bg-[#d0a653] px-7 text-sm font-semibold text-black hover:bg-[#dfb661] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-11 items-center justify-center gap-2 rounded-[12px] bg-[#D5AB48] px-7 text-sm font-semibold text-[#241A0C] hover:bg-[#E2BA5A] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isCreatingRetailer || isCreatingHumidor || isCreatingInventory
                 ? "Saving..."
                 : step === steps.length - 1
-                  ? "Launch Workspace"
+                  ? "Go to Dashboard"
                   : "Continue"}
-              {step === steps.length - 1 ? <Rocket className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
+              <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </form>

@@ -79,7 +79,7 @@ const FirstHumidorStep = ({
         {data.shelfes.map((shelf, index) => (
           <div
             key={index}
-            className="relative rounded-xl border border-[#383431] bg-[#151312] p-4"
+            className="relative rounded-xl border border-[#6f5528] bg-[#3B2D16]/55 p-4"
           >
             <div className="mb-3 flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide text-[#d0a653]">
