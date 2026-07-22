@@ -63,6 +63,11 @@ export type MasterCigar = {
 
 export type InventoryPage = { data: InventoryItem[]; meta: { page: number; limit: number; total: number } };
 export type OpportunityResult = { days: number; count: number; data: InventoryItem[] };
+export type RecordSaleResult = {
+  inventory: InventoryItem;
+  sale: { quantitySold: number; previousQuantity: number; quantity: number; soldAt: string };
+  notification: { type: "low_stock" | "out_of_stock"; message: string } | null;
+};
 
 async function request<T>(path: string, token: string, init?: RequestInit, signal?: AbortSignal) {
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, ...init?.headers }, signal });
@@ -78,8 +83,8 @@ export async function getInventory(token: string, page: number, searchTerm: stri
   return { data: result.data || [], meta: result.meta };
 }
 
-export async function getMasterCigars(token: string, signal?: AbortSignal): Promise<MasterCigar[]> {
-  const params = new URLSearchParams({ status: "approved", limit: "100", page: "1", sortBy: "name", sortOrder: "asc" });
+export async function getMasterCigars(token: string, searchTerm: string, signal?: AbortSignal): Promise<MasterCigar[]> {
+  const params = new URLSearchParams({ status: "approved", searchTerm: searchTerm.trim(), limit: "10", page: "1", sortBy: "name", sortOrder: "asc" });
   const result = await request<{ data: MasterCigar[] }>(`/master-database?${params}`, token, undefined, signal);
   return result.data || [];
 }
@@ -111,5 +116,14 @@ export async function updateInventory(token: string, id: string, input: Inventor
 
 export async function deleteInventory(token: string, id: string) {
   const result = await request<{ data: InventoryItem }>(`/inventory/${id}`, token, { method: "DELETE" });
+  return result.data;
+}
+
+export async function recordInventorySale(token: string, id: string, quantitySold: number) {
+  const result = await request<{ data: RecordSaleResult }>(`/inventory/${id}/record-sale`, token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ quantitySold }),
+  });
   return result.data;
 }
