@@ -45,7 +45,7 @@ export default function DashboardShell({ title, subtitle, children }: Props) {
     .toUpperCase();
 
   return (
-    <main className="min-h-screen w-full bg-[#3b2816] font-poppins text-[#f4dfa8] lg:pl-[280px]">
+    <main className="dashboard-copy min-h-screen w-full bg-[#3b2816] font-poppins text-[#f4dfa8] lg:pl-[280px]">
       <aside className="sticky top-0 z-40 flex h-16 w-full items-center bg-[#291806] px-3 font-sans lg:fixed lg:inset-y-0 lg:left-0 lg:h-screen lg:w-[280px] lg:flex-col lg:px-4 lg:py-4">
         <Link href="/" aria-label="Go to home page" className="flex h-14 w-16 shrink-0 items-center justify-center no-underline lg:h-[70px] lg:w-full">
           <Image src="/assets/images/logo.png" alt="Beloose" width={72} height={72} className="h-12 w-12 object-contain lg:h-14 lg:w-14" />

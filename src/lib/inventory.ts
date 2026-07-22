@@ -1,5 +1,6 @@
 export type InventoryItem = {
   _id: string;
+  masterCigarId?: string;
   name?: string;
   brand?: string;
   strength?: "mild" | "medium" | "full";
@@ -27,6 +28,7 @@ export type InventoryItem = {
 };
 
 export type InventoryInput = {
+  masterCigarId: string;
   name: string;
   brand: string;
   strength: "" | "mild" | "medium" | "full";
@@ -48,6 +50,17 @@ export type InventoryInput = {
   image?: File;
 };
 
+export type MasterCigar = {
+  _id: string;
+  name: string;
+  brand: string;
+  strength?: "mild" | "medium" | "full";
+  wrapper?: string;
+  size?: string;
+  image?: string;
+  description?: string;
+};
+
 export type InventoryPage = { data: InventoryItem[]; meta: { page: number; limit: number; total: number } };
 export type OpportunityResult = { days: number; count: number; data: InventoryItem[] };
 
@@ -63,6 +76,12 @@ export async function getInventory(token: string, page: number, searchTerm: stri
   if (searchTerm.trim()) params.set("searchTerm", searchTerm.trim());
   const result = await request<{ data: InventoryItem[]; meta: InventoryPage["meta"] }>(`/inventory/my-inventory?${params}`, token, undefined, signal);
   return { data: result.data || [], meta: result.meta };
+}
+
+export async function getMasterCigars(token: string, signal?: AbortSignal): Promise<MasterCigar[]> {
+  const params = new URLSearchParams({ status: "approved", limit: "100", page: "1", sortBy: "name", sortOrder: "asc" });
+  const result = await request<{ data: MasterCigar[] }>(`/master-database?${params}`, token, undefined, signal);
+  return result.data || [];
 }
 
 export async function getInventoryOpportunities(token: string, days: number, signal?: AbortSignal) {
