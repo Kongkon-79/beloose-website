@@ -31,27 +31,36 @@ function TodayContent({ dashboard }: { dashboard: RetailerDashboard }) {
   const approvals = findAlert(dashboard.needsAttention, "under_review");
   const paymentDue = findAlert(dashboard.urgent, "payment_due");
   const lowInventoryCount = itemCount(lowStock) + itemCount(outOfStock);
-  const topSearch = dashboard.topSearched[0];
+  const topSearch = dashboard.topSearched?.[0];
+  const formatNumber = (value: number | undefined | null) => Number.isFinite(value) ? value?.toLocaleString() : "0";
+  const totalProducts = dashboard.snapshot?.totalProducts;
+  const totalStock = dashboard.snapshot?.totalStock;
+  const totalSearches = dashboard.snapshot?.totalSearches;
+  const topSearchedCount = dashboard.topSearched?.length ?? 0;
+  const staffPicksCount = dashboard.quickActions?.staffPicks?.count ?? 0;
+  const newArrivalsCount = dashboard.quickActions?.newArrivals?.count ?? 0;
+  const dailyFeaturedCount = dashboard.quickActions?.dailyFeatured?.items?.length ?? 0;
+
   const metrics = [
-    [dashboard.snapshot.totalProducts, "Total Products", "Active cigar lines", Package],
-    [dashboard.snapshot.totalStock, "Total Units", "Units currently in stock", Box],
+    [totalProducts, "Total Products", "Active cigar lines", Package],
+    [totalStock, "Total Units", "Units currently in stock", Box],
     [itemCount(lowStock), "Low Stock Items", "At or below threshold", TrendingDown],
-    [dashboard.snapshot.totalSearches, "Search Activity", "Across top searched cigars", Search],
+    [totalSearches, "Search Activity", "Across top searched cigars", Search],
   ] as const;
 
   return <div className="min-h-[calc(100vh-72px)] bg-[#3b2918] p-3 sm:p-4">
-    <section><h2 className="font-playfair text-2xl font-semibold text-[#f2dca5]">What should I do today?</h2><p className="mt-1 text-xs text-[#a98b5c]">Here’s what needs your attention right now, {dashboard.greetingName}.</p></section>
+    <section><h2 className="font-playfair text-2xl font-semibold text-[#f2dca5]">What should I do today?</h2><p className="mt-1 text-xs text-[#a98b5c]">Here’s what needs your attention right now, {dashboard.greetingName || "retailer"}.</p></section>
     {paymentDue && <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 p-3 text-xs text-amber-100"><Clock3 size={16} className="mt-0.5 shrink-0"/><div><strong>{paymentDue.title}</strong><p className="mt-1 text-[10px] text-amber-200/75">{paymentDue.message}</p></div></div>}
 
-    <section className="mt-6 grid grid-cols-2 gap-2.5 xl:grid-cols-4 xl:gap-4" aria-label="Today’s inventory summary">{metrics.map(([value, label, note, Icon]) => <article className="flex min-h-[108px] items-center justify-between rounded-lg border border-[#856a3c] bg-[#34200e] p-3 sm:p-[18px]" key={label}><div className="min-w-0"><Icon size={18} className="mb-3 text-[#d5a744]"/><strong className="block text-xl font-medium leading-none text-[#f7dfa6] sm:text-2xl">{value.toLocaleString()}</strong><span className="mt-2 block text-[11px] text-[#d9c08b]">{label}</span><small className="mt-0.5 hidden text-[9px] text-[#876d46] sm:block">{note}</small></div></article>)}</section>
+    <section className="mt-6 grid grid-cols-2 gap-2.5 xl:grid-cols-4 xl:gap-4" aria-label="Today’s inventory summary">{metrics.map(([value, label, note, Icon]) => <article className="flex min-h-[108px] items-center justify-between rounded-lg border border-[#856a3c] bg-[#34200e] p-3 sm:p-[18px]" key={label}><div className="min-w-0"><Icon size={18} className="mb-3 text-[#d5a744]"/><strong className="block text-xl font-medium leading-none text-[#f7dfa6] sm:text-2xl">{formatNumber(value)}</strong><span className="mt-2 block text-[11px] text-[#d9c08b]">{label}</span><small className="mt-0.5 hidden text-[9px] text-[#876d46] sm:block">{note}</small></div></article>)}</section>
 
     <section className="mt-7"><h3 className="flex items-center gap-2 font-playfair text-lg font-semibold text-[#f2dca5]"><AlertTriangle size={17} className="text-[#d5a744]"/>Actionable Items</h3><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       <ActionCard href="/retailer-dashboard/inventory" icon={AlertTriangle} tone="red" title="Low Inventory" description={lowInventoryCount ? `${lowInventoryCount} product${lowInventoryCount === 1 ? "" : "s"} need restocking` : "No products currently need restocking"} detail={alertItemNames(lowStock, outOfStock) || "Inventory levels look healthy"}/>
       <ActionCard href="/retailer-dashboard/inventory-opportunities" icon={PackageSearch} tone="gold" title="Products Needing Attention" description={itemCount(opportunities) ? "Slow-moving inventory needs a decision" : "No inventory opportunities waiting"} detail={`${itemCount(opportunities)} product${itemCount(opportunities) === 1 ? "" : "s"} need attention`}/>
       <ActionCard href="/retailer-dashboard/customer-search" icon={Search} tone="blue" title="Recent Customer Searches" description="What customers are looking for" detail={topSearch ? `${topSearch.name} · ${topSearch.searches} searches` : "No customer searches recorded yet"}/>
       <ActionCard href="/retailer-dashboard/inventory" icon={Clock3} tone="purple" title="Pending Approvals" description="Products awaiting admin review" detail={`${itemCount(approvals)} product${itemCount(approvals) === 1 ? "" : "s"} under review`}/>
-      <ActionCard href="/retailer-dashboard/business-insights" icon={Search} tone="brown" title="Search Activity" description="Customer searches recorded in your inventory" detail={`${dashboard.snapshot.totalSearches.toLocaleString()} searches across ${dashboard.topSearched.length} top product${dashboard.topSearched.length === 1 ? "" : "s"}`}/>
-      <ActionCard href="/retailer-dashboard/daily-featured" icon={CalendarDays} tone="green" title="Today’s Promotions" description="Staff picks, arrivals, and featured cigars" detail={`${dashboard.quickActions.staffPicks.count} staff picks · ${dashboard.quickActions.newArrivals.count} new arrivals · ${dashboard.quickActions.dailyFeatured.items.length} daily featured`}/>
+      <ActionCard href="/retailer-dashboard/business-insights" icon={Search} tone="brown" title="Search Activity" description="Customer searches recorded in your inventory" detail={`${formatNumber(totalSearches)} searches across ${topSearchedCount} top product${topSearchedCount === 1 ? "" : "s"}`}/>
+      <ActionCard href="/retailer-dashboard/daily-featured" icon={CalendarDays} tone="green" title="Today’s Promotions" description="Staff picks, arrivals, and featured cigars" detail={`${staffPicksCount} staff picks · ${newArrivalsCount} new arrivals · ${dailyFeaturedCount} daily featured`}/>
     </div></section>
   </div>;
 }
