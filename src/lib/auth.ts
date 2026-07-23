@@ -70,6 +70,10 @@ export const authOptions: NextAuthOptions = {
             role: user?.role,
             verified: user?.verified ?? user?.verfied ?? '',
             isSubscription: Boolean(user?.isSubscription),
+            isRelailer: Boolean(user?.isRelailer),
+            isHumidor: Boolean(user?.isHumidor),
+            isInventory: Boolean(user?.isInventory),
+            isQrCode: Boolean(user?.isQrCode),
             profilePicture: user?.profilePicture,
             token: accessToken,
             accessToken,
@@ -101,27 +105,36 @@ export const authOptions: NextAuthOptions = {
       session?: any
     }) {
       if (user) {
-        token.id = user.id ?? user._id
-        token.fullName = user.fullName
-        token.businessName = user.businessName
-        token.firstName = user.firstName
-        token.lastName = user.lastName
-        token.username = user.username
-        token.email = user.email
-        token.status = user.status
-        token.tag = user.tag
-        token.phoneNumber = user.phoneNumber
-        token.role = user.role
-        token.verified = user.verified
-        token.isSubscription = user.isSubscription
-        token.profilePicture = user.profilePicture
-        token.token = user.token ?? user.accessToken
-        token.accessToken = user.token ?? user.accessToken
+        token.id = user.id ?? user._id;
+        token.fullName = user.fullName;
+        token.businessName = user.businessName;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+        token.username = user.username;
+        token.email = user.email;
+        token.status = user.status;
+        token.tag = user.tag;
+        token.phoneNumber = user.phoneNumber;
+        token.role = user.role;
+        token.verified = user.verified;
+        token.isSubscription = user.isSubscription;
+        token.isRelailer = user.isRelailer;
+        token.isHumidor = user.isHumidor;
+        token.isInventory = user.isInventory;
+        token.isQrCode = user.isQrCode;
+        token.profilePicture = user.profilePicture;
+        token.token = user.token ?? user.accessToken;
+        token.accessToken = user.token ?? user.accessToken;
       }
-      if (trigger === 'update' && session) {
-        token.fullName = session.fullName ?? token.fullName
-        token.email = session.email ?? token.email
-        token.profilePicture = session.profilePicture ?? token.profilePicture
+      if (trigger === "update" && session) {
+        token.fullName = session.fullName ?? token.fullName;
+        token.email = session.email ?? token.email;
+        token.profilePicture = session.profilePicture ?? token.profilePicture;
+        token.isSubscription = session.isSubscription ?? token.isSubscription;
+        token.isRelailer = session.isRelailer ?? token.isRelailer;
+        token.isHumidor = session.isHumidor ?? token.isHumidor;
+        token.isInventory = session.isInventory ?? token.isInventory;
+        token.isQrCode = session.isQrCode ?? token.isQrCode;
       }
       return token
     },
@@ -142,6 +155,10 @@ export const authOptions: NextAuthOptions = {
         role: token.role,
         verified: token.verified,
         isSubscription: token.isSubscription,
+        isRelailer: token.isRelailer,
+        isHumidor: token.isHumidor,
+        isInventory: token.isInventory,
+        isQrCode: token.isQrCode,
         profilePicture: token.profilePicture,
         token: token.token ?? token.accessToken,
         accessToken: token.accessToken ?? token.token,

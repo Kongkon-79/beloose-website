@@ -81,7 +81,7 @@ const SignupForm = () => {
     mutationKey: ["register-user"],
     mutationFn: async (values: FormValues) => {
       const apiUrl =
-        process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8081/api/v1";
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
       let res: Response;
 

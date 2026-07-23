@@ -1,4 +1,5 @@
-import Testimonial from "../store/[id]/_components/testimonial";
+
+import Testimonial from "../_components/testimonial";
 import FavoriteHero from "./_components/favorite-hero";
 
 const FavoritePage = () => {
