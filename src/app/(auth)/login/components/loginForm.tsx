@@ -15,13 +15,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
+import { getAuthenticatedRoute } from "@/lib/onboarding";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -60,10 +61,12 @@ const LoginForm = () => {
         throw new Error(res?.error || "Unable to sign in. Please try again.");
       }
 
-      // const session = await getSession();
+      const session = await getSession();
+      if (!session?.user) {
+        throw new Error("Your session could not be loaded. Please try again.");
+      }
       toast.success("Login successful!");
-      // router.replace(session?.user?.isSubscription ? "/retailer-dashboard" : "/subscription");
-      router.push("/retailer-dashboard")
+      router.replace(getAuthenticatedRoute(session.user));
       router.refresh();
     } catch (error) {
       toast.error(

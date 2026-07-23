@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { useEffect } from "react";
 
 type QrCodeResponse = {
   success?: boolean;
@@ -20,7 +21,7 @@ type QrCodeResponse = {
 
 const getMyQrCode = async (accessToken: string) => {
   const apiUrl =
-    process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8081/api/v1";
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
   let response: Response;
 
@@ -50,7 +51,7 @@ const getMyQrCode = async (accessToken: string) => {
   return result.data;
 };
 
-const QrCodeStep = () => {
+const QrCodeStep = ({ onReady }: { onReady: (ready: boolean) => void }) => {
   const { data: session, status } = useSession();
   const accessToken = session?.accessToken;
   const {
@@ -63,6 +64,10 @@ const QrCodeStep = () => {
     queryFn: () => getMyQrCode(accessToken!),
     enabled: Boolean(accessToken),
   });
+
+  useEffect(() => {
+    onReady(Boolean(qrCode));
+  }, [onReady, qrCode]);
 
   return (
     <div>

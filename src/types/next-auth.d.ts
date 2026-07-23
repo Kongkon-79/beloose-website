@@ -11,6 +11,10 @@ declare module "next-auth" {
       verified: string;
       status: string;
       isSubscription: boolean;
+      isRelailer: boolean;
+      isHumidor: boolean;
+      isInventory: boolean;
+      isQrCode: boolean;
     };
   }
 
@@ -21,6 +25,10 @@ declare module "next-auth" {
     verified: string;
     status: string;
     isSubscription: boolean;
+    isRelailer: boolean;
+    isHumidor: boolean;
+    isInventory: boolean;
+    isQrCode: boolean;
     accessToken: string;
   }
 }
@@ -34,6 +42,10 @@ declare module "next-auth/jwt" {
     verified: string;
     status: string;
     isSubscription: boolean;
+    isRelailer: boolean;
+    isHumidor: boolean;
+    isInventory: boolean;
+    isQrCode: boolean;
     accessToken: string;
   }
 }

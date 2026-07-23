@@ -26,6 +26,7 @@ import type {
   InventoryField,
   OnboardingData,
 } from "./onboarding-types";
+import { getOnboardingStep, type OnboardingStatus } from "@/lib/onboarding";
 
 const initialData: OnboardingData = {
   storeName: "",
@@ -102,12 +103,74 @@ const isValidPhoneNumber = (value: string) => {
 
 const OnboardingContainer = () => {
   const router = useRouter();
-  const { data: session } = useSession();
-  const accessToken = (session?.user as { accessToken?: string } | undefined)?.accessToken;
+  const { data: session, status: sessionStatus, update: updateSession } = useSession();
+  const sessionUser = session?.user;
+  const accessToken = (sessionUser as { accessToken?: string } | undefined)?.accessToken;
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
   const [step, setStep] = useState(0);
   const [data, setData] = useState<OnboardingData>(initialData);
   const [inventoryImage, setInventoryImage] = useState<File | null>(null);
+  const [qrReady, setQrReady] = useState(false);
+
+  useEffect(() => {
+    if (sessionStatus === "unauthenticated") {
+      router.replace("/login?callbackUrl=/onboarding");
+      return;
+    }
+    if (sessionStatus !== "authenticated" || !sessionUser) return;
+
+    setStep(getOnboardingStep(sessionUser));
+
+    const loadCurrentStatus = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/user/profile`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
+        });
+        const result = (await response.json()) as {
+          data?: OnboardingStatus;
+        };
+        if (!response.ok || !result.data) return;
+
+        const currentStep = getOnboardingStep(result.data);
+        setStep(currentStep);
+        await updateSession(result.data);
+
+        if (currentStep === 2) {
+          const humidorResponse = await fetch(
+            `${apiUrl}/humidor/my-humidor?limit=1`,
+            {
+              headers: { Authorization: `Bearer ${accessToken}` },
+              cache: "no-store",
+            },
+          );
+          const humidorResult = (await humidorResponse.json()) as {
+            data?: Array<{
+              _id: string;
+              shelfes?: Array<{ name: string; description?: string }>;
+            }>;
+          };
+          const humidor = humidorResult.data?.[0];
+          if (humidorResponse.ok && humidor) {
+            setData((current) => ({
+              ...current,
+              humidorId: humidor._id,
+              shelfes: humidor.shelfes?.length
+                ? humidor.shelfes.map((shelf) => ({
+                    name: shelf.name,
+                    description: shelf.description || "",
+                  }))
+                : current.shelfes,
+            }));
+          }
+        }
+      } catch {
+        // The signed-in session still provides a safe starting step offline.
+      }
+    };
+
+    void loadCurrentStatus();
+  }, [accessToken, apiUrl, router, sessionStatus, sessionUser, updateSession]);
 
   useEffect(() => {
     const saved = localStorage.getItem("humidor411-onboarding");
@@ -338,6 +401,10 @@ const OnboardingContainer = () => {
       toast.error("Please select a cigar image");
       return;
     }
+    if (step === 3 && !qrReady) {
+      toast.error("Please wait until your QR code is ready");
+      return;
+    }
     if (step === 2 && data.isStaffPick && (!data.staffPickBy.trim() || !data.staffPickNote.trim())) {
       toast.error("Please complete the staff pick details");
       return;
@@ -520,7 +587,7 @@ const OnboardingContainer = () => {
                 onImageChange={setInventoryImage}
               />
             )}
-            {step === 3 && <QrCodeStep />}
+            {step === 3 && <QrCodeStep onReady={setQrReady} />}
             {step === 4 && <ReadyToLaunchStep />}
           </div>
 

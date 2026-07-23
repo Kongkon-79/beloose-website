@@ -11,6 +11,8 @@ import { loadStripe } from "@stripe/stripe-js";
 import { useState } from "react";
 import StripePaymentForm from "./stripe-payment-form";
 import Link from "next/link";
+import { getAuthenticatedRoute } from "@/lib/onboarding";
+import { useEffect } from "react";
 
 type Subscription = {
   _id: string;
@@ -92,6 +94,12 @@ const SubscriptionContainer = () => {
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(
     null,
   );
+
+  useEffect(() => {
+    if (status === "authenticated" && session.user.isSubscription) {
+      router.replace(getAuthenticatedRoute(session.user));
+    }
+  }, [router, session, status]);
   const {
     data: subscriptions = [],
     isLoading,
