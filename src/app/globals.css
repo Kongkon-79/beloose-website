@@ -27,6 +27,60 @@ html {
   display: none;
 }
 
+.dashboard-scrollbar {
+  scrollbar-color: rgb(203 162 74 / 45%) transparent;
+  scrollbar-width: thin;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background: rgb(203 162 74 / 45%);
+  background-clip: padding-box;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(203 162 74 / 70%);
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-button {
+  display: none;
+}
+
+.dashboard-copy .text-\[7px\] {
+  font-size: 9px;
+  line-height: 12px;
+}
+
+.dashboard-copy .text-\[8px\] {
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.dashboard-copy .text-\[9px\] {
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.dashboard-copy .text-\[10px\] {
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.dashboard-copy .text-\[11px\] {
+  font-size: 12px;
+  line-height: 18px;
+}
+
 
 @layer base {
   :root {

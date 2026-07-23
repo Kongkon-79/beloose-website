@@ -1,5 +1,6 @@
 import { ImagePlus, Package } from "lucide-react";
 import type { ChangeEvent } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   inputClassName,
   labelClassName,
@@ -60,7 +61,7 @@ const InventoryStep = ({
           <label><span className={labelClassName}>Brand</span><input className={inputClassName} value={data.inventoryBrand} onChange={(e) => onFieldChange("inventoryBrand", e.target.value)} placeholder="Padron" /></label>
           <label><span className={labelClassName}>Size</span><input className={inputClassName} value={data.inventorySize} onChange={(e) => onFieldChange("inventorySize", e.target.value)} placeholder="Toro" /></label>
           <label><span className={labelClassName}>Wrapper</span><input className={inputClassName} value={data.inventoryWrapper} onChange={(e) => onFieldChange("inventoryWrapper", e.target.value)} placeholder="Natural Colorado" /></label>
-          <label><span className={labelClassName}>Strength</span><select className={inputClassName} value={data.inventoryStrength} onChange={(e) => onFieldChange("inventoryStrength", e.target.value)}><option value="mild">Mild</option><option value="medium">Medium</option><option value="full">Full</option></select></label>
+          <div><span className={labelClassName}>Strength</span><Select value={data.inventoryStrength} onValueChange={(value) => onFieldChange("inventoryStrength", value)}><SelectTrigger aria-label="Strength" className={`${inputClassName} shadow-none`}><SelectValue placeholder="Select strength" /></SelectTrigger><SelectContent className="border-[#6f5528] bg-[#2b2112] text-[#e5e1dc]"><SelectItem className="focus:bg-[#4b391b] focus:text-[#f1d993]" value="mild">Mild</SelectItem><SelectItem className="focus:bg-[#4b391b] focus:text-[#f1d993]" value="medium">Medium</SelectItem><SelectItem className="focus:bg-[#4b391b] focus:text-[#f1d993]" value="full">Full</SelectItem></SelectContent></Select></div>
         </div>
         <label><span className={labelClassName}>Description</span><textarea className={textareaClassName} value={data.inventoryDescription} onChange={(e) => onFieldChange("inventoryDescription", e.target.value)} placeholder="A premium handmade Nicaraguan cigar." /></label>
       </div>
@@ -69,7 +70,7 @@ const InventoryStep = ({
     <section>
       <h2 className="mb-3 text-sm font-semibold text-[#d0a653]">Placement & Stock</h2>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label><span className={labelClassName}>Shelf</span><select className={inputClassName} value={data.inventoryShelfName} onChange={(e) => onFieldChange("inventoryShelfName", e.target.value)}><option value="">Select a shelf</option>{data.shelfes.map((shelf) => <option key={shelf.name} value={shelf.name}>{shelf.name}</option>)}</select></label>
+        <div><span className={labelClassName}>Shelf</span><Select value={data.inventoryShelfName || undefined} onValueChange={(value) => onFieldChange("inventoryShelfName", value)}><SelectTrigger aria-label="Shelf" className={`${inputClassName} shadow-none`}><SelectValue placeholder="Select a shelf" /></SelectTrigger><SelectContent className="border-[#6f5528] bg-[#2b2112] text-[#e5e1dc]">{data.shelfes.map((shelf) => <SelectItem className="focus:bg-[#4b391b] focus:text-[#f1d993]" key={shelf.name} value={shelf.name}>{shelf.name}</SelectItem>)}</SelectContent></Select></div>
         <label><span className={labelClassName}>Quantity</span><input className={inputClassName} type="number" min="0" value={data.inventoryQuantity} onChange={(e) => onFieldChange("inventoryQuantity", e.target.value)} placeholder="10" /></label>
         <label><span className={labelClassName}>Price ($)</span><input className={inputClassName} type="number" min="0" step="0.01" value={data.inventoryPrice} onChange={(e) => onFieldChange("inventoryPrice", e.target.value)} placeholder="25.99" /></label>
         <label><span className={labelClassName}>Low stock alert</span><input className={inputClassName} type="number" min="0" value={data.lowStockThreshold} onChange={(e) => onFieldChange("lowStockThreshold", e.target.value)} placeholder="5" /></label>

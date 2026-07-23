@@ -1,6 +1,7 @@
 "use client";
 
 import { getProfileSettings, updateProfileSettings, type UserProfile } from "@/lib/profileInfo";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -119,7 +120,7 @@ function Field({ label, value, onChange, type = "text", wide, placeholder, readO
 }
 function SelectField({ label, value, values, onChange, disabled }: { label: string; value: string; values: string[]; onChange: (value: string) => void; disabled: boolean }) {
   const options = value && !values.includes(value) ? [value, ...values] : values;
-  return <label className="flex flex-col gap-1.5 text-[11px]"><span>{label}</span><select className={inputClass} value={value} onChange={event => onChange(event.target.value)} disabled={disabled}><option value="">Choose any one</option>{options.map(option => <option value={option} key={option}>{option}</option>)}</select></label>;
+  return <div className="flex flex-col gap-1.5 text-[11px]"><span>{label}</span><Select value={value || undefined} onValueChange={onChange} disabled={disabled}><SelectTrigger aria-label={label} className={`${inputClass} shadow-none`}><SelectValue placeholder="Choose any one" /></SelectTrigger><SelectContent className="border-[#d5c39b] bg-[#3b2918] text-[#f0ddb0]">{options.map(option => <SelectItem className="focus:bg-[#59401f] focus:text-[#f0ddb0]" value={option} key={option}>{option}</SelectItem>)}</SelectContent></Select></div>;
 }
 function Radio({ label, checked, disabled, onChange }: { label: string; checked: boolean; disabled: boolean; onChange: () => void }) {
   return <label className="flex items-center gap-1 text-[#cfb47e]"><input type="radio" checked={checked} disabled={disabled} onChange={onChange} className="accent-[#d2a13d]"/>{label}</label>;
