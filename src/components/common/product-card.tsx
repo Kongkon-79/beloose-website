@@ -61,15 +61,15 @@ export default function ProductCard({
     <article
       className={`group flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-[#393532] bg-[#211F1D] transition duration-300 hover:-translate-y-1 hover:border-[#CBA24A]/45 hover:shadow-[0_18px_45px_rgba(0,0,0,0.35)] ${className}`}
     >
-      <div className="relative flex aspect-[4/5] min-h-[200px] items-center justify-center overflow-hidden bg-[#242220]">
+      <div className="relative flex aspect-[4/5] max-h-[250px] items-center justify-center overflow-hidden bg-[#242220]">
         {product.image ? (
           <>
             <Image
               src={product.image}
               alt={product.name}
-              fill
-              sizes="(max-width: 640px) 90vw, (max-width: 1024px) 46vw, 25vw"
-              className="object-contain p-8 transition duration-500 group-hover:scale-[1.04] "
+              width={1000}
+              height={1000}
+              className="w-full h-[250px] object-cover transition duration-500 group-hover:scale-[1.04]"
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#242220]/35 via-transparent to-black/5" />
           </>
