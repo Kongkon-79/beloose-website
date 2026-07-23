@@ -52,7 +52,7 @@ const StoreUserHero = () => {
             </Link>
 
             <Link
-              href="#collection"
+              href="#"
               className="inline-flex h-10 w-full items-center justify-center gap-3 rounded-[3px] border border-[#CBA24A]/80 bg-black/15 px-6 text-xs font-medium text-[#F7E4C5] backdrop-blur-[2px] transition-colors hover:bg-[#CBA24A]/15 sm:w-auto"
             >
               Guided Discovery

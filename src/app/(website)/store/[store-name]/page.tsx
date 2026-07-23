@@ -36,9 +36,7 @@ const UserStorePage = ({
 
         <Testimonial/>
         <HowHumidorWorks/>
-
         <PerfectPairings/>
-        <GuidedDiscovery/>
     </AgeVerification>
   )
 }
